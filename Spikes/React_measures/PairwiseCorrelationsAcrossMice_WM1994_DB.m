@@ -60,7 +60,7 @@ for j=1:length(Dir.path)
     cd(Dir.path{j}{1});
     load('SpikeData.mat','S','PlaceCells');
     load('behavResources.mat','SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd','FreezeAccEpoch');
-    if strcmp(Dir.name, 'Mouse906') || strcmp(Dir.name, 'Mouse977') % Mice with bad OB-based sleep scoring
+    if strcmp(Dir.name{j}, 'Mouse906') || strcmp(Dir.name{j}, 'Mouse977') % Mice with bad OB-based sleep scoring
         load('SleepScoring_Accelero.mat','SWSEpoch','REMEpoch','Sleep');
     else
         load('SleepScoring_OBGamma.mat','SWSEpoch','REMEpoch','Sleep');
@@ -212,7 +212,7 @@ for j=1:length(Dir.path)
             % PreSleep
             clear C_PreSleep C_Task C_PostSleep C_CondMov C_CondFreez C_PostTest
             [C_PreSleep,B]=CrossCorr(Range(Restrict(S{pair(1)},and(SessionEpoch.PreSleep, SWSEpoch))),...
-                Range(Restrict(S{pair(2)},and(SessionEpoch.PreSleep, SWSEpoch))),1,200);
+                Range(Restrict(S{pair(2)},and(SessionEpoch.PreSleep, SWSEpoch))),2,20);
             C_PreSleep_O{j}(i) = mean(C_PreSleep);
             if C_PreSleep_O{j}(i) == 0
                 C_PreSleep_O{j}(i) = NaN;
