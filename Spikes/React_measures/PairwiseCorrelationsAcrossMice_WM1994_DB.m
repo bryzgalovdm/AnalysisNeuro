@@ -1,0 +1,558 @@
+
+
+%% Parameters
+nmouse = [797 798 828 861 882 905 906 911 912 977 994];
+% nmouse = [906 912]; % Had PreMazes
+% nmouse = [905 911]; % Did not have PreMazes
+Dir = PathForExperimentsERC_Dima('UMazePAG');
+Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
+
+overlapFactor = 5;
+
+sav = 0;
+
+%% Allocate
+CPRE_O_Mean = zeros(1,length(Dir.path));
+CPRE_O_std = zeros(1,length(Dir.path));
+CPRE_D_Mean = zeros(1,length(Dir.path));
+CPRE_D_std = zeros(1,length(Dir.path));
+
+CTASK_O_Mean = zeros(1,length(Dir.path));
+CTASK_O_std = zeros(1,length(Dir.path));
+CTASK_D_Mean = zeros(1,length(Dir.path));
+CTASK_D_std = zeros(1,length(Dir.path));
+
+CPOST_O_Mean = zeros(1,length(Dir.path));
+CPOST_O_std = zeros(1,length(Dir.path));
+CPOST_D_Mean = zeros(1,length(Dir.path));
+CPOST_D_std = zeros(1,length(Dir.path));
+
+CCONDMOV_O_Mean = zeros(1,length(Dir.path));
+CCONDMOV_O_std = zeros(1,length(Dir.path));
+CCONDMOV_D_Mean = zeros(1,length(Dir.path));
+CCONDMOV_D_std = zeros(1,length(Dir.path));
+
+CCONDFREEZ_O_Mean = zeros(1,length(Dir.path));
+CCONDFREEZ_O_std = zeros(1,length(Dir.path));
+CCONDFREEZ_D_Mean = zeros(1,length(Dir.path));
+CCONDFREEZ_D_std = zeros(1,length(Dir.path));
+
+CPOSTTEST_O_Mean = zeros(1,length(Dir.path));
+CPOSTTEST_O_std = zeros(1,length(Dir.path));
+CPOSTTEST_D_Mean = zeros(1,length(Dir.path));
+CPOSTTEST_D_std = zeros(1,length(Dir.path));
+
+%% Load Data
+for j=1:length(Dir.path)
+    cd(Dir.path{j}{1});
+    load('SpikeData.mat','S','PlaceCells');
+    load('behavResources.mat','SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd','FreezeAccEpoch');
+    if j == 7 || j==10 %%%% Mouse906 Mouse977
+        load('SleepScoring_Accelero.mat','SWSEpoch','REMEpoch','Sleep');
+    else
+        load('SleepScoring_OBGamma.mat','SWSEpoch','REMEpoch','Sleep');
+    end
+    
+    
+    
+    %% Epochs
+    
+    % BaselineExplo Epoch
+    UMazeEpoch{j} = or(SessionEpoch.Hab,SessionEpoch.TestPre1);
+    UMazeEpoch{j} = or(UMazeEpoch{j},SessionEpoch.TestPre2);
+    UMazeEpoch{j} = or(UMazeEpoch{j},SessionEpoch.TestPre3);
+    UMazeEpoch{j} = or(UMazeEpoch{j},SessionEpoch.TestPre4);
+    
+    % Conditioning
+    ConditioningEpoch{j} = or(SessionEpoch.Cond1,SessionEpoch.Cond2);
+    ConditioningEpoch{j} = or(ConditioningEpoch{j},SessionEpoch.Cond3);
+    ConditioningEpoch{j} = or(ConditioningEpoch{j},SessionEpoch.Cond4);
+    
+    
+    % After Conditioning
+    AfterConditioningEpoch{j} = or(SessionEpoch.TestPost1,SessionEpoch.TestPost2);
+    AfterConditioningEpoch{j} = or(AfterConditioningEpoch{j},SessionEpoch.TestPost3);
+    AfterConditioningEpoch{j} = or(AfterConditioningEpoch{j},SessionEpoch.TestPost4);
+    
+    % Locomotion threshold
+    VtsdSmoothed  = tsd(Range(CleanVtsd),movmedian(Data(CleanVtsd),5));
+    LocomotionEpoch{j} = thresholdIntervals(VtsdSmoothed,3,'Direction','Above');
+    
+    % Get resulting epoch
+    UMazeMovingEpoch{j} = and(LocomotionEpoch{j}, UMazeEpoch{j});
+    AfterConditioningMovingEpoch{j} = and(LocomotionEpoch{j}, AfterConditioningEpoch{j});
+    ConditioningMovingEpoch{j} = and(LocomotionEpoch{j}, ConditioningEpoch{j});
+    ConditioningFreezingEpoch{j} = and(FreezeAccEpoch, ConditioningEpoch{j});
+    
+    %% Calculate
+    
+    % Get the stats for each cell
+    if isfield(PlaceCells,'idx')
+        if length(PlaceCells.idx)>2
+            for i=1:length(PlaceCells.idx)
+                try
+                    [map{i},mapS,stats{i},px,py,FR(i),sizeFinal,PrField{i},C,ScField,pfH,pf] =...
+                        PlaceField_DB(Restrict(S{PlaceCells.idx(i)},UMazeMovingEpoch{j}),...
+                        Restrict(CleanAlignedXtsd, UMazeMovingEpoch{j}),...
+                        Restrict(CleanAlignedYtsd, UMazeMovingEpoch{j}),'threshold',0.5, 'plotresults',0);
+                    close all;
+                catch
+                    map{i} = [];
+                    stats{i}=[];
+                    PrField{i}=[];
+                end
+            end
+            
+            % FindOverlappingPlaceCells
+            o = 1;
+            n = 1;
+            for i=1:length(PlaceCells.idx)
+                for k = i+1:length(PlaceCells.idx)
+                    cell1 = PlaceCells.idx(i);
+                    cell2 = PlaceCells.idx(k);
+                    if iscell(stats{i}.field) && ~iscell(stats{k}.field)
+                        OverlappedFields{1} = stats{i}.field{1} & stats{k}.field;
+                        OverlappedFields{2} = stats{i}.field{2} & stats{k}.field;
+                        numOverlap{1}(i,k) = nnz(OverlappedFields{1});
+                        numOverlap{2}(i,k) = nnz(OverlappedFields{2});
+                        if numOverlap{1}(i,k) > overlapFactor || numOverlap{2}(i,k) > overlapFactor
+                            overlappairs{j}{o} = [cell1, cell2];
+                            o=o+1;
+                        else
+                            distantpairs{j}{n} = [cell1, cell2];
+                            n=n+1;
+                        end
+                    elseif ~iscell(stats{i}.field) && iscell(stats{k}.field)
+                        OverlappedFields{1} = stats{i}.field & stats{k}.field{1};
+                        OverlappedFields{2} = stats{i}.field & stats{k}.field{2};
+                        numOverlap{1}(i,k) = nnz(OverlappedFields{1});
+                        numOverlap{2}(i,k) = nnz(OverlappedFields{2});
+                        if numOverlap{1}(i,k) > overlapFactor || numOverlap{2}(i,k) > overlapFactor
+                            overlappairs{j}{o} = [cell1, cell2];
+                            o=o+1;
+                        else
+                            distantpairs{j}{n} = [cell1, cell2];
+                            n=n+1;
+                        end
+                    elseif iscell(stats{i}.field) && iscell(stats{i}.field)
+                        OverlappedFields{1} = stats{i}.field{1} & stats{k}.field{1};
+                        OverlappedFields{2} = stats{i}.field{1} & stats{k}.field{2};
+                        OverlappedFields{3} = stats{i}.field{2} & stats{k}.field{1};
+                        OverlappedFields{4} = stats{i}.field{2} & stats{k}.field{2};
+                        numOverlap{1}(i,k) = nnz(OverlappedFields{1});
+                        numOverlap{2}(i,k) = nnz(OverlappedFields{2});
+                        numOverlap{3}(i,k) = nnz(OverlappedFields{3});
+                        numOverlap{4}(i,k) = nnz(OverlappedFields{4});
+                        if numOverlap{1}(i,k) > overlapFactor || numOverlap{2}(i,k) > overlapFactor ||...
+                                numOverlap{3}(i,k) > overlapFactor || numOverlap{4}(i,k) > overlapFactor
+                            overlappairs{j}{o} = [cell1, cell2];
+                            o=o+1;
+                        else
+                            distantpairs{j}{n} = [cell1, cell2];
+                            n=n+1;
+                        end
+                    else
+                        OverlappedFields = stats{i}.field & stats{k}.field;
+                        numOverlap(i,j) = nnz(OverlappedFields);
+                        if numOverlap(i,j) > overlapFactor
+                            overlappairs{j}{o} = [cell1, cell2];
+                            o=o+1;
+                        else
+                            distantpairs{j}{n} = [cell1, cell2];
+                            n=n+1;
+                        end
+                    end
+                    clear OverlappedFields numOverlap
+                end
+            end
+            if ~exist('overlappairs','var') || numel(overlappairs) < j
+                overlappairs{j} = [];
+            end
+            if ~exist('distantpairs','var') || numel(distantpairs) < j
+                distantpairs{j} = [];
+            end
+        else
+            overlappairs{j}=[];
+            distantpairs{j}=[];
+        end
+    else
+        overlappairs{j}=[];
+        distantpairs{j}=[];
+    end
+    
+    %% Cross correlation
+    
+    % Allocation
+    C_PreSleep_O{j} = zeros(1,length(overlappairs{j}));
+    C_Task_O{j} = zeros(1,length(overlappairs{j}));
+    C_CondMov_O{j} = zeros(1,length(overlappairs{j}));
+    C_CondFreez_O{j} = zeros(1,length(overlappairs{j}));
+    C_PostSleep_O{j} = zeros(1,length(overlappairs{j}));
+    C_PostTest_O{j} = zeros(1,length(overlappairs{j}));
+    
+    
+    
+    if ~isempty(overlappairs{j})
+        % Overlapped
+        for i=1:length(overlappairs{j})
+            pair = overlappairs{j}{i};
+            % PreSleep
+            clear C_PreSleep C_Task C_PostSleep C_CondMov C_CondFreez C_PostTest
+            [C_PreSleep,B]=CrossCorr(Range(Restrict(S{pair(1)},and(SessionEpoch.PreSleep, SWSEpoch))),...
+                Range(Restrict(S{pair(2)},and(SessionEpoch.PreSleep, SWSEpoch))),1,200);
+            C_PreSleep_O{j}(i) = mean(C_PreSleep);
+            if C_PreSleep_O{j}(i) == 0
+                C_PreSleep_O{j}(i) = NaN;
+            end
+            % Task
+            [C_Task,B]=CrossCorr(Range(Restrict(S{pair(1)},UMazeMovingEpoch{j})),...
+                Range(Restrict(S{pair(2)},UMazeMovingEpoch{j})),2,20);
+            C_Task_O{j}(i) = mean(C_Task);
+            if C_Task_O{j}(i) == 0
+                C_Task_O{j}(i) = NaN;
+            end
+            % CondMoving
+            [C_CondMov,B]=CrossCorr(Range(Restrict(S{pair(1)},ConditioningMovingEpoch{j})),...
+                Range(Restrict(S{pair(2)},ConditioningMovingEpoch{j})),2,20);
+            C_CondMov_O{j}(i) = mean(C_CondMov);
+            if C_CondMov_O{j}(i) == 0
+                C_CondMov_O{j}(i) = NaN;
+            end
+            % CondFreezing
+            [C_CondFreez,B]=CrossCorr(Range(Restrict(S{pair(1)},ConditioningFreezingEpoch{j})),...
+                Range(Restrict(S{pair(2)},ConditioningFreezingEpoch{j})),2,20);
+            C_CondFreez_O{j}(i) = mean(C_CondFreez);
+            if C_CondFreez_O{j}(i) == 0
+                C_CondFreez_O{j}(i) = NaN;
+            end
+            % PostSleep
+            [C_PostSleep,B]=CrossCorr(Range(Restrict(S{pair(1)},and(SessionEpoch.PostSleep, SWSEpoch))),...
+                Range(Restrict(S{pair(2)},and(SessionEpoch.PostSleep, SWSEpoch))),2,20);
+            C_PostSleep_O{j}(i) = mean(C_PostSleep);
+            if C_PostSleep_O{j}(i) == 0
+                C_PostSleep_O{j}(i) = NaN;
+            end
+            % PostTests
+            [C_PostTest,B]=CrossCorr(Range(Restrict(S{pair(1)},AfterConditioningMovingEpoch{j})),...
+                Range(Restrict(S{pair(2)},AfterConditioningMovingEpoch{j})),2,20);
+            C_PostTest_O{j}(i) = mean(C_PostTest);
+            if C_PostTest_O{j}(i) == 0
+                C_PostTest_O{j}(i) = NaN;
+            end
+        end
+    else
+        C_PreSleep_O{j} = [];
+        C_Task_O{j} = [];
+        C_CondMov_O{j} = [];
+        C_CondFreez_O{j} = [];
+        C_PostSleep_O{j} = [];
+        C_PostTest_O{j} = [];
+    end
+    
+    %%% Allocation
+    C_PreSleep_D{j} = zeros(1,length(distantpairs{j}));
+    C_Task_D{j} = zeros(1,length(distantpairs{j}));
+    C_CondMov_D{j} = zeros(1,length(distantpairs{j}));
+    C_CondFreez_D{j} = zeros(1,length(distantpairs{j}));
+    C_PostSleep_D{j} = zeros(1,length(distantpairs{j}));
+    C_PostTest_D{j} = zeros(1,length(distantpairs{j}));
+    
+    
+    if ~isempty(distantpairs{j})
+        % Non-Overlapped
+        for i=1:length(distantpairs{j})
+            pair = distantpairs{j}{i};
+            % PreSleep
+            clear C_PreSleep C_Task C_PostSleep C_CondMov C_CondFreez C_PostTest
+            [C_PreSleep,B]=CrossCorr(Range(Restrict(S{pair(1)},and(SessionEpoch.PreSleep, SWSEpoch))),...
+                Range(Restrict(S{pair(2)},and(SessionEpoch.PreSleep, SWSEpoch))),2,20);
+            C_PreSleep_D{j}(i) = mean(C_PreSleep);
+            if C_PreSleep_D{j}(i) == 0
+                C_PreSleep_D{j}(i) = NaN;
+            end
+            % Task
+            [C_Task,B]=CrossCorr(Range(Restrict(S{pair(1)},UMazeMovingEpoch{j})),...
+                Range(Restrict(S{pair(2)},UMazeMovingEpoch{j})),2,20);
+            C_Task_D{j}(i) = mean(C_Task);
+            if C_Task_D{j}(i) == 0
+                C_Task_D{j}(i) = NaN;
+            end
+            % CondMoving
+            [C_CondMov,B]=CrossCorr(Range(Restrict(S{pair(1)},ConditioningMovingEpoch{j})),...
+                Range(Restrict(S{pair(2)},ConditioningMovingEpoch{j})),2,20);
+            C_CondMov_D{j}(i) = mean(C_CondMov);
+            if C_CondMov_D{j}(i) == 0
+                C_CondMov_D{j}(i) = NaN;
+            end
+            % CondFreezing
+            [C_CondFreez,B]=CrossCorr(Range(Restrict(S{pair(1)},ConditioningFreezingEpoch{j})),...
+                Range(Restrict(S{pair(2)},ConditioningFreezingEpoch{j})),2,20);
+            C_CondFreez_D{j}(i) = mean(C_CondFreez);
+            if C_CondFreez_D{j}(i) == 0
+                C_CondFreez_D{j}(i) = NaN;
+            end
+            % PostSleep
+            [C_PostSleep,B]=CrossCorr(Range(Restrict(S{pair(1)},and(SessionEpoch.PostSleep, SWSEpoch))),...
+                Range(Restrict(S{pair(2)},and(SessionEpoch.PostSleep, SWSEpoch))),2,20);
+            C_PostSleep_D{j}(i) = mean(C_PostSleep);
+            if C_PostSleep_D{j}(i) == 0
+                C_PostSleep_D{j}(i) = NaN;
+            end
+            % PostTests
+            [C_PostTest,B]=CrossCorr(Range(Restrict(S{pair(1)},AfterConditioningMovingEpoch{j})),...
+                Range(Restrict(S{pair(2)},AfterConditioningMovingEpoch{j})),2,20);
+            C_PostTest_D{j}(i) = mean(C_PostTest);
+            if C_PostTest_D{j}(i) == 0
+                C_PostTest_D{j}(i) = NaN;
+            end
+        end
+    else
+        C_PreSleep_D{j} = [];
+        C_Task_D{j} = [];
+        C_CondMov_D{j} = [];
+        C_CondFreez_D{j} = [];
+        C_PostSleep_D{j} = [];
+        C_PostTest_D{j} = [];
+    end
+
+    
+    
+    %% Average
+   
+        CPRE_O_Mean(j) = nanmean(C_PreSleep_O{j});
+        CPRE_O_std(j) = nanstd(C_PreSleep_O{j});
+        CPRE_D_Mean(j) = nanmean(C_PreSleep_D{j});
+        CPRE_D_std(j) = nanstd(C_PreSleep_D{j});
+    
+        CTASK_O_Mean(j) = nanmean(C_Task_O{j});
+        CTASK_O_std(j) = nanstd(C_Task_O{j});
+        CTASK_D_Mean(j) = nanmean(C_Task_D{j});
+        CTASK_D_std(j) = nanstd(C_Task_D{j});
+        
+        CCONDMOV_O_Mean(j) = nanmean(C_CondMov_O{j});
+        CCONDMOV_O_std(j) = nanstd(C_CondMov_O{j});
+        CCONDMOV_D_Mean(j) = nanmean(C_CondMov_D{j});
+        CCONDMOV_D_std(j) = nanstd(C_CondMov_D{j});
+        
+        CCONDFREEZ_O_Mean(j) = nanmean(C_CondFreez_O{j});
+        CCONDFREEZ_O_std(j) = nanstd(C_CondFreez_O{j});
+        CCONDFREEZ_D_Mean(j) = nanmean(C_CondFreez_D{j});
+        CCONDFREEZ_D_std(j) = nanstd(C_CondFreez_D{j});
+
+        CPOST_O_Mean(j) = nanmean(C_PostSleep_O{j});
+        CPOST_O_std(j) = nanstd(C_PostSleep_O{j});
+        CPOST_D_Mean(j) = nanmean(C_PostSleep_D{j});
+        CPOST_D_std(j) = nanstd(C_PostSleep_D{j});
+
+        CPOSTTEST_O_Mean(j) = nanmean(C_PostTest_O{j});
+        CPOSTTEST_O_std(j) = nanstd(C_PostTest_O{j});
+        CPOSTTEST_D_Mean(j) = nanmean(C_PostTest_D{j});
+        CPOSTTEST_D_std(j) = nanstd(C_PostTest_D{j});
+    
+    
+   clear CleanVtsd S SessionEpoch PlaceCells Sleep SWSEpoch REMEpoch map stats PrField CleanAlignedXtsd CleanAlignedYtsd
+end
+
+%% Pool the Neurons
+
+C_PreSleep_O_Pooled = cell2mat(C_PreSleep_O);
+C_Task_O_Pooled = cell2mat(C_Task_O);
+C_CondMov_O_Pooled = cell2mat(C_CondMov_O);
+C_CondFreez_O_Pooled = cell2mat(C_CondFreez_O);
+C_PostSleep_O_Pooled = cell2mat(C_PostSleep_O);
+C_PostTest_O_Pooled = cell2mat(C_PostTest_O);
+
+C_PreSleep_D_Pooled = cell2mat(C_PreSleep_D);
+C_Task_D_Pooled = cell2mat(C_Task_D);
+C_CondMov_D_Pooled = cell2mat(C_CondMov_D);
+C_CondFreez_D_Pooled = cell2mat(C_CondFreez_D);
+C_PostSleep_D_Pooled = cell2mat(C_PostSleep_D);
+C_PostTest_D_Pooled = cell2mat(C_PostTest_D);
+
+%% Inter-subject average
+CPRE_O_Mean_Av = nanmean(CPRE_O_Mean);
+CPRE_O_std_Av = nanstd(CPRE_O_Mean);
+CPRE_D_Mean_Av = nanmean(CPRE_D_Mean);
+CPRE_D_std_Av = nanstd(CPRE_D_Mean);
+CPRE_OD_Mean_Av = [CPRE_O_Mean_Av CPRE_D_Mean_Av];
+CPRE_OD_std_Av = [CPRE_O_std_Av CPRE_D_std_Av];
+
+CTASK_O_Mean_Av = nanmean(CTASK_O_Mean);
+CTASK_O_std_Av = nanstd(CTASK_O_Mean);
+CTASK_D_Mean_Av = nanmean(CTASK_D_Mean);
+CTASK_D_std_Av = nanstd(CTASK_D_Mean);
+CTASK_OD_Mean_Av = [CTASK_O_Mean_Av CTASK_D_Mean_Av];
+CTASK_OD_std_Av = [CTASK_O_std_Av CTASK_D_std_Av];
+
+CCONDMOV_O_Mean_Av = nanmean(CCONDMOV_O_Mean);
+CCONDMOV_O_std_Av = nanstd(CCONDMOV_O_Mean);
+CCONDMOV_D_Mean_Av = nanmean(CCONDMOV_D_Mean);
+CCONDMOV_D_std_Av = nanstd(CCONDMOV_D_Mean);
+CCONDMOV_OD_Mean_Av = [CCONDMOV_O_Mean_Av CCONDMOV_D_Mean_Av];
+CCONDMOV_OD_std_Av = [CCONDMOV_O_std_Av CCONDMOV_D_std_Av];
+
+CCONDFREEZ_O_Mean_Av = nanmean(CCONDFREEZ_O_Mean);
+CCONDFREEZ_O_std_Av = nanstd(CCONDFREEZ_O_Mean);
+CCONDFREEZ_D_Mean_Av = nanmean(CCONDFREEZ_D_Mean);
+CCONDFREEZ_D_std_Av = nanstd(CCONDFREEZ_D_Mean);
+CCONDFREEZ_OD_Mean_Av = [CCONDFREEZ_O_Mean_Av CCONDFREEZ_D_Mean_Av];
+CCONDFREEZ_OD_std_Av = [CCONDFREEZ_O_std_Av CCONDFREEZ_D_std_Av];
+
+CPOST_O_Mean_Av = nanmean(CPOST_O_Mean);
+CPOST_O_std_Av = nanstd(CPOST_O_Mean);
+CPOST_D_Mean_Av = nanmean(CPOST_D_Mean);
+CPOST_D_std_Av = nanstd(CPOST_D_Mean);
+CPOST_OD_Mean_Av = [CPOST_O_Mean_Av CPOST_D_Mean_Av];
+CPOST_OD_std_Av = [CPOST_O_std_Av CPOST_D_std_Av];
+
+CPOSTTEST_O_Mean_Av = nanmean(CPOSTTEST_O_Mean);
+CPOSTTEST_O_std_Av = nanstd(CPOSTTEST_O_Mean);
+CPOSTTEST_D_Mean_Av = nanmean(CPOSTTEST_D_Mean);
+CPOSTTEST_D_std_Av = nanstd(CPOSTTEST_D_Mean);
+CPOSTTEST_OD_Mean_Av = [CPOSTTEST_O_Mean_Av CPOSTTEST_D_Mean_Av];
+CPOSTTEST_OD_std_Av = [CPOSTTEST_O_std_Av CPOSTTEST_D_std_Av];
+    
+%%%% Stats
+PreStats = signrank(CPRE_O_Mean, CPRE_D_Mean);
+TaskStats = signrank(CTASK_O_Mean, CTASK_D_Mean);
+CondMovStats = signrank(CCONDMOV_O_Mean, CCONDMOV_D_Mean);
+CondFreezStats = signrank(CCONDFREEZ_O_Mean, CCONDFREEZ_D_Mean);
+PostStats = signrank(CPOST_O_Mean, CPOST_D_Mean);
+PosTestStats = signrank(CPOSTTEST_O_Mean, CPOSTTEST_D_Mean);
+
+
+
+%% Inter-neuron average
+CPRE_O_Mean_Pooled = nanmean(C_PreSleep_O_Pooled);
+CPRE_O_std_Pooled = nanstd(C_PreSleep_O_Pooled);
+CPRE_D_Mean_Pooled = nanmean(C_PreSleep_D_Pooled);
+CPRE_D_std_Pooled = nanstd(C_PreSleep_D_Pooled);
+CPRE_OD_Mean_Pooled = [CPRE_O_Mean_Pooled CPRE_D_Mean_Pooled];
+CPRE_OD_std_Pooled = [CPRE_O_std_Pooled CPRE_D_std_Pooled];
+
+CTASK_O_Mean_Pooled = nanmean(C_Task_O_Pooled);
+CTASK_O_std_Pooled = nanstd(C_Task_O_Pooled);
+CTASK_D_Mean_Pooled = nanmean(C_Task_D_Pooled);
+CTASK_D_std_Pooled = nanstd(C_Task_D_Pooled);
+CTASK_OD_Mean_Pooled = [CTASK_O_Mean_Pooled CTASK_D_Mean_Pooled];
+CTASK_OD_std_Pooled = [CTASK_O_std_Pooled CTASK_D_std_Pooled];
+
+CCONDMOV_O_Mean_Pooled = nanmean(C_CondMov_O_Pooled);
+CCONDMOV_O_std_Pooled = nanstd(C_CondMov_O_Pooled);
+CCONDMOV_D_Mean_Pooled = nanmean(C_CondMov_D_Pooled);
+CCONDMOV_D_std_Pooled = nanstd(C_CondMov_D_Pooled);
+CCONDMOV_OD_Mean_Pooled = [CCONDMOV_O_Mean_Pooled CCONDMOV_D_Mean_Pooled];
+CCONDMOV_OD_std_Pooled = [CCONDMOV_O_std_Pooled CCONDMOV_D_std_Pooled];
+
+CCONDFREEZ_O_Mean_Pooled = nanmean(C_CondFreez_O_Pooled);
+CCONDFREEZ_O_std_Pooled = nanstd(C_CondFreez_O_Pooled);
+CCONDFREEZ_D_Mean_Pooled = nanmean(C_CondFreez_D_Pooled);
+CCONDFREEZ_D_std_Pooled = nanstd(C_CondFreez_D_Pooled);
+CCONDFREEZ_OD_Mean_Pooled = [CCONDFREEZ_O_Mean_Pooled CCONDFREEZ_D_Mean_Pooled];
+CCONDFREEZ_OD_std_Pooled = [CCONDFREEZ_O_std_Pooled CCONDFREEZ_D_std_Pooled];
+
+
+CPOST_O_Mean_Pooled = nanmean(C_PostSleep_O_Pooled);
+CPOST_O_std_Pooled = nanstd(C_PostSleep_O_Pooled);
+CPOST_D_Mean_Pooled = nanmean(C_PostSleep_D_Pooled);
+CPOST_D_std_Pooled = nanstd(C_PostSleep_D_Pooled);
+CPOST_OD_Mean_Pooled = [CPOST_O_Mean_Pooled CPOST_D_Mean_Pooled];
+CPOST_OD_std_Pooled = [CPOST_O_std_Pooled CPOST_D_std_Pooled];
+
+CPOSTTEST_O_Mean_Pooled = nanmean(C_PostTest_O_Pooled);
+CPOSTTEST_O_std_Pooled = nanstd(C_PostTest_O_Pooled);
+CPOSTTEST_D_Mean_Pooled = nanmean(C_PostTest_D_Pooled);
+CPOSTTEST_D_std_Pooled = nanstd(C_PostTest_D_Pooled);
+CPOSTTEST_OD_Mean_Pooled = [CPOSTTEST_O_Mean_Pooled CPOSTTEST_D_Mean_Pooled];
+CPOSTTEST_OD_std_Pooled = [CPOSTTEST_O_std_Pooled CPOSTTEST_D_std_Pooled];
+
+%%%% Stats
+[PreStats_Pooled,ppre] = ttest2(C_PreSleep_O_Pooled, C_PreSleep_D_Pooled);
+[TaskStats_Pooled,ptask] = ttest2(C_Task_O_Pooled, C_Task_D_Pooled);
+[CondMovStats_Pooled,pcondmov] = ttest2(C_CondMov_O_Pooled,C_CondMov_D_Pooled);
+[CondFreezStats_Pooled,pcondfreez] = ttest2(C_CondFreez_O_Pooled, C_CondFreez_D_Pooled);
+[PostStats_Pooled,ppost] = ttest2(C_PostSleep_O_Pooled,C_PostSleep_D_Pooled);
+[PosTestStats_Pooled,pposttest] = ttest2(C_PostTest_O_Pooled, C_PostTest_D_Pooled);
+
+
+%% Plot 
+
+fh = figure('units', 'normalized', 'outerposition', [0 0 0.7 0.7]);
+b = barwitherr([CPRE_OD_std_Av;CTASK_OD_std_Av; CPOST_OD_std_Av; CPOSTTEST_OD_std_Av],...
+    [CPRE_OD_Mean_Av;CTASK_OD_Mean_Av; CPOST_OD_Mean_Av; CPOSTTEST_OD_Mean_Av]);
+set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+b(1).BarWidth = 0.8;
+b(1).FaceColor = 'w';
+b(2).FaceColor = 'k';
+b(1).LineWidth = 3;
+b(2).LineWidth = 3;
+x = [b(1).XData + [b(1).XOffset]; b(1).XData - [b(1).XOffset]];
+hold on
+% set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'Cond running', 'Cond Freezing', 'PostSleep', 'PostTests'})
+set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'PostSleep', 'PostTests'})
+ylabel('Cross-Corellation')
+hold off
+box off
+set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+% title 
+lg = legend('Overlapping PCs', 'Non-overlapping PCs');
+lg.FontSize = 14;
+[p,h5,stats] = signrank([CPRE_O_Mean CPRE_D_Mean]);
+if p < 0.05
+    sigstar_DB({{1,2}},p,0, 'StarSize',14);
+end
+[p,h5,stats] = signrank([CTASK_O_Mean CTASK_D_Mean]);
+if p < 0.05
+    sigstar_DB({{3,4}},p,0, 'StarSize',14);
+end
+
+
+
+if sav
+    saveas(gcf,['/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Pairwise_Small.fig']);
+    saveFigure(gcf,'Pairwise_Small',...
+        '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/');
+end
+
+%% Plot2
+
+fh = figure('units', 'normalized', 'outerposition', [0 0 0.7 0.7]);
+b = barwitherr([CPRE_OD_std_Pooled;CTASK_OD_std_Pooled; CPOST_OD_Mean_Pooled; CPOSTTEST_OD_Mean_Pooled],...
+    [CPRE_OD_Mean_Pooled;CTASK_OD_Mean_Pooled; CPOST_OD_Mean_Pooled; CPOSTTEST_OD_Mean_Pooled]);
+set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+b(1).BarWidth = 0.8;
+b(1).FaceColor = 'w';
+b(2).FaceColor = 'k';
+b(1).LineWidth = 3;
+b(2).LineWidth = 3;
+x = [b(1).XData + [b(1).XOffset]; b(1).XData - [b(1).XOffset]];
+hold on
+% set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'Cond running', 'Cond Freezing', 'PostSleep', 'PostTests'})
+set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'PostSleep', 'PostTests'})
+ylabel('Cross-Corellation')
+hold off
+box off
+set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+% title 
+lg = legend('Overlapping PCs', 'Non-overlapping PCs');
+lg.FontSize = 14;
+[p,h5,stats] = signrank(CPRE_OD_Mean_Pooled);
+if p < 0.05
+    sigstar_DB({{1,2}},p,0, 'StarSize',14);
+end
+[p,h5,stats] = signrank(CTASK_OD_Mean_Pooled);
+if p < 0.05
+    sigstar_DB({{1,2}},p,0, 'StarSize',14);
+end
+% sigstar_DB(groups,stats,0,'LineWigth',16,'StarSize',24);
+
+
+if sav
+    saveas(fh,['/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Pairwise_Small_Pooled.fig']);
+    saveFigure(fh,'Pairwise_Small_Pooled',...
+        '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/');
+end
