@@ -1,17 +1,30 @@
+%%%% PairwiseCorrelationsAcrossMice_WM1994_DB
+% 
+% 
+% This script performs pairwise correlations on all overlapping
+% and non-overlapping place cells of each particular mouse,
+% averages them out and then does global mean across all mice
+% 
+% Please go inside the script and check the parameters
 
 
 %% Parameters
+% Mice that go in the analysis
 nmouse = [797 798 828 861 882 905 906 911 912 977 994];
 % nmouse = [906 912]; % Had PreMazes
 % nmouse = [905 911]; % Did not have PreMazes
+
+% Get paths of each individual mouse
 Dir = PathForExperimentsERC_Dima('UMazePAG');
 Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 
+% How many pixels should overlap to define an overlap in the place field?
 overlapFactor = 5;
 
+% Do you want to save the figures?
 sav = 0;
 
-%% Allocate
+%% Allocate memory
 CPRE_O_Mean = zeros(1,length(Dir.path));
 CPRE_O_std = zeros(1,length(Dir.path));
 CPRE_D_Mean = zeros(1,length(Dir.path));
@@ -47,7 +60,7 @@ for j=1:length(Dir.path)
     cd(Dir.path{j}{1});
     load('SpikeData.mat','S','PlaceCells');
     load('behavResources.mat','SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd','FreezeAccEpoch');
-    if j == 7 || j==10 %%%% Mouse906 Mouse977
+    if strcmp(Dir.name, 'Mouse906') || strcmp(Dir.name, 'Mouse977') % Mice with bad OB-based sleep scoring
         load('SleepScoring_Accelero.mat','SWSEpoch','REMEpoch','Sleep');
     else
         load('SleepScoring_OBGamma.mat','SWSEpoch','REMEpoch','Sleep');
@@ -84,13 +97,13 @@ for j=1:length(Dir.path)
     ConditioningMovingEpoch{j} = and(LocomotionEpoch{j}, ConditioningEpoch{j});
     ConditioningFreezingEpoch{j} = and(FreezeAccEpoch, ConditioningEpoch{j});
     
-    %% Calculate
+    %% Calculate overlap for each place field
     
     % Get the stats for each cell
     if isfield(PlaceCells,'idx')
-        if length(PlaceCells.idx)>2
+        if length(PlaceCells.idx)>2 %%% Take only mice with number of place cells > 2
             for i=1:length(PlaceCells.idx)
-                try
+                try % Get the place field
                     [map{i},mapS,stats{i},px,py,FR(i),sizeFinal,PrField{i},C,ScField,pfH,pf] =...
                         PlaceField_DB(Restrict(S{PlaceCells.idx(i)},UMazeMovingEpoch{j}),...
                         Restrict(CleanAlignedXtsd, UMazeMovingEpoch{j}),...
@@ -110,11 +123,12 @@ for j=1:length(Dir.path)
                 for k = i+1:length(PlaceCells.idx)
                     cell1 = PlaceCells.idx(i);
                     cell2 = PlaceCells.idx(k);
-                    if iscell(stats{i}.field) && ~iscell(stats{k}.field)
+                    if iscell(stats{i}.field) && ~iscell(stats{k}.field) % If cell1 has two fields, and cell2 has one
                         OverlappedFields{1} = stats{i}.field{1} & stats{k}.field;
                         OverlappedFields{2} = stats{i}.field{2} & stats{k}.field;
                         numOverlap{1}(i,k) = nnz(OverlappedFields{1});
                         numOverlap{2}(i,k) = nnz(OverlappedFields{2});
+                        % If either one ot the other place field overlaps, consider overlap
                         if numOverlap{1}(i,k) > overlapFactor || numOverlap{2}(i,k) > overlapFactor
                             overlappairs{j}{o} = [cell1, cell2];
                             o=o+1;
@@ -122,7 +136,7 @@ for j=1:length(Dir.path)
                             distantpairs{j}{n} = [cell1, cell2];
                             n=n+1;
                         end
-                    elseif ~iscell(stats{i}.field) && iscell(stats{k}.field)
+                    elseif ~iscell(stats{i}.field) && iscell(stats{k}.field) % If cell1 has one field, and cell2 has two
                         OverlappedFields{1} = stats{i}.field & stats{k}.field{1};
                         OverlappedFields{2} = stats{i}.field & stats{k}.field{2};
                         numOverlap{1}(i,k) = nnz(OverlappedFields{1});
@@ -134,7 +148,7 @@ for j=1:length(Dir.path)
                             distantpairs{j}{n} = [cell1, cell2];
                             n=n+1;
                         end
-                    elseif iscell(stats{i}.field) && iscell(stats{i}.field)
+                    elseif iscell(stats{i}.field) && iscell(stats{i}.field) % If both cell1 and cell2 have two fields
                         OverlappedFields{1} = stats{i}.field{1} & stats{k}.field{1};
                         OverlappedFields{2} = stats{i}.field{1} & stats{k}.field{2};
                         OverlappedFields{3} = stats{i}.field{2} & stats{k}.field{1};
@@ -152,7 +166,7 @@ for j=1:length(Dir.path)
                             n=n+1;
                         end
                     else
-                        OverlappedFields = stats{i}.field & stats{k}.field;
+                        OverlappedFields = stats{i}.field & stats{k}.field; % If both cell1 and cell2 have one field
                         numOverlap(i,j) = nnz(OverlappedFields);
                         if numOverlap(i,j) > overlapFactor
                             overlappairs{j}{o} = [cell1, cell2];
@@ -180,9 +194,9 @@ for j=1:length(Dir.path)
         distantpairs{j}=[];
     end
     
-    %% Cross correlation
+    %% Calculate cross-correlation
     
-    % Allocation
+    % Allocate memory - overlapping cells
     C_PreSleep_O{j} = zeros(1,length(overlappairs{j}));
     C_Task_O{j} = zeros(1,length(overlappairs{j}));
     C_CondMov_O{j} = zeros(1,length(overlappairs{j}));
@@ -190,8 +204,7 @@ for j=1:length(Dir.path)
     C_PostSleep_O{j} = zeros(1,length(overlappairs{j}));
     C_PostTest_O{j} = zeros(1,length(overlappairs{j}));
     
-    
-    
+    % Perform calculations - overlapping cells
     if ~isempty(overlappairs{j})
         % Overlapped
         for i=1:length(overlappairs{j})
@@ -249,7 +262,7 @@ for j=1:length(Dir.path)
         C_PostTest_O{j} = [];
     end
     
-    %%% Allocation
+    % Allocate memory - non-overlapping cells
     C_PreSleep_D{j} = zeros(1,length(distantpairs{j}));
     C_Task_D{j} = zeros(1,length(distantpairs{j}));
     C_CondMov_D{j} = zeros(1,length(distantpairs{j}));
@@ -257,7 +270,7 @@ for j=1:length(Dir.path)
     C_PostSleep_D{j} = zeros(1,length(distantpairs{j}));
     C_PostTest_D{j} = zeros(1,length(distantpairs{j}));
     
-    
+    % Perform calculations - non-overlapping cells
     if ~isempty(distantpairs{j})
         % Non-Overlapped
         for i=1:length(distantpairs{j})
@@ -508,12 +521,10 @@ if p < 0.05
     sigstar_DB({{3,4}},p,0, 'StarSize',14);
 end
 
-
-
 if sav
-    saveas(gcf,['/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Pairwise_Small.fig']);
+    saveas(gcf,[dropbox '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Pairwise_Small.fig']);
     saveFigure(gcf,'Pairwise_Small',...
-        '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/');
+        [dropbox '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/']);
 end
 
 %% Plot2
@@ -552,7 +563,7 @@ end
 
 
 if sav
-    saveas(fh,['/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Pairwise_Small_Pooled.fig']);
+    saveas(fh,[dropbox '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Pairwise_Small_Pooled.fig']);
     saveFigure(fh,'Pairwise_Small_Pooled',...
-        '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/');
+        [dropbox '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/']);
 end
