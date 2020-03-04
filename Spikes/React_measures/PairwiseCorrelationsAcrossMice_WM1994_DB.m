@@ -20,7 +20,7 @@ Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 
 % Parameters of cross-correlograms
 binsize = 2; % How much ms do you wnat a bin to contain?
-CCtime = 100; % How much time around a 0 you want to have (+-, in ms)?
+CCtime = 20; % How much time around a 0 you want to have (+-, in ms)?
 
 % How many pixels should overlap to define an overlap in the place field?
 overlapFactor = 50;
@@ -228,43 +228,43 @@ for j=1:length(Dir.path)
             pair = overlappairs{j}{i};
             % PreSleep
             clear C_PreSleep C_Task C_PostSleep C_CondMov C_CondFreez C_PostTest
-            [C_PreSleep,B]=CrossCorrDB(Range(Restrict(S{pair(1)},PreSleepFinal)),...
-                Range(Restrict(S{pair(2)},PreSleepFinal)),binsize,CCtime/binsize);
+            [C_PreSleep,B]=CrossCorrDB(Data(Restrict(S{pair(1)},PreSleepFinal)),...
+                Data(Restrict(S{pair(2)},PreSleepFinal)),binsize,CCtime);
             C_PreSleep_O{j}(i) = mean(C_PreSleep);
             if C_PreSleep_O{j}(i) == 0
                 C_PreSleep_O{j}(i) = NaN;
             end
             % Task
-            [C_Task,B]=CrossCorrDB(Range(Restrict(S{pair(1)},UMazeMovingEpoch{j})),...
-                Range(Restrict(S{pair(2)},UMazeMovingEpoch{j})),binsize,CCtime/binsize);
+            [C_Task,B]=CrossCorrDB(Data(Restrict(S{pair(1)},UMazeMovingEpoch{j})),...
+                Data(Restrict(S{pair(2)},UMazeMovingEpoch{j})),binsize,CCtime);
             C_Task_O{j}(i) = mean(C_Task);
             if C_Task_O{j}(i) == 0
                 C_Task_O{j}(i) = NaN;
             end
             % CondMoving
-            [C_CondMov,B]=CrossCorrDB(Range(Restrict(S{pair(1)},ConditioningMovingEpoch{j})),...
-                Range(Restrict(S{pair(2)},ConditioningMovingEpoch{j})),binsize,CCtime/binsize);
+            [C_CondMov,B]=CrossCorrDB(Data(Restrict(S{pair(1)},ConditioningMovingEpoch{j})),...
+                Data(Restrict(S{pair(2)},ConditioningMovingEpoch{j})),binsize,CCtime);
             C_CondMov_O{j}(i) = mean(C_CondMov);
             if C_CondMov_O{j}(i) == 0
                 C_CondMov_O{j}(i) = NaN;
             end
             % CondFreezing
-            [C_CondFreez,B]=CrossCorrDB(Range(Restrict(S{pair(1)},ConditioningFreezingEpoch{j})),...
-                Range(Restrict(S{pair(2)},ConditioningFreezingEpoch{j})),binsize,CCtime/binsize);
+            [C_CondFreez,B]=CrossCorrDB(Data(Restrict(S{pair(1)},ConditioningFreezingEpoch{j})),...
+                Data(Restrict(S{pair(2)},ConditioningFreezingEpoch{j})),binsize,CCtime);
             C_CondFreez_O{j}(i) = mean(C_CondFreez);
             if C_CondFreez_O{j}(i) == 0
                 C_CondFreez_O{j}(i) = NaN;
             end
             % PostSleep
-            [C_PostSleep,B]=CrossCorrDB(Range(Restrict(S{pair(1)},PostSleepFinal)),...
-                Range(Restrict(S{pair(2)},PostSleepFinal)),binsize,CCtime/binsize);
+            [C_PostSleep,B]=CrossCorrDB(Data(Restrict(S{pair(1)},PostSleepFinal)),...
+                Data(Restrict(S{pair(2)},PostSleepFinal)),binsize,CCtime);
             C_PostSleep_O{j}(i) = mean(C_PostSleep);
             if C_PostSleep_O{j}(i) == 0
                 C_PostSleep_O{j}(i) = NaN;
             end
             % PostTests
-            [C_PostTest,B]=CrossCorrDB(Range(Restrict(S{pair(1)},AfterConditioningMovingEpoch{j})),...
-                Range(Restrict(S{pair(2)},AfterConditioningMovingEpoch{j})),binsize,CCtime/binsize);
+            [C_PostTest,B]=CrossCorrDB(Data(Restrict(S{pair(1)},AfterConditioningMovingEpoch{j})),...
+                Data(Restrict(S{pair(2)},AfterConditioningMovingEpoch{j})),binsize,CCtime);
             C_PostTest_O{j}(i) = mean(C_PostTest);
             if C_PostTest_O{j}(i) == 0
                 C_PostTest_O{j}(i) = NaN;
@@ -294,43 +294,43 @@ for j=1:length(Dir.path)
             pair = distantpairs{j}{i};
             % PreSleep
             clear C_PreSleep C_Task C_PostSleep C_CondMov C_CondFreez C_PostTest
-            [C_PreSleep,B]=CrossCorrDB(Range(Restrict(S{pair(1)},PreSleepFinal)),...
-                Range(Restrict(S{pair(2)},PreSleepFinal)),binsize,CCtime/binsize);
+            [C_PreSleep,B]=CrossCorrDB(Data(Restrict(S{pair(1)},PreSleepFinal)),...
+                Data(Restrict(S{pair(2)},PreSleepFinal)),binsize,CCtime);
             C_PreSleep_D{j}(i) = mean(C_PreSleep);
             if C_PreSleep_D{j}(i) == 0
                 C_PreSleep_D{j}(i) = NaN;
             end
             % Task
-            [C_Task,B]=CrossCorrDB(Range(Restrict(S{pair(1)},UMazeMovingEpoch{j})),...
-                Range(Restrict(S{pair(2)},UMazeMovingEpoch{j})),binsize,CCtime/binsize);
+            [C_Task,B]=CrossCorrDB(Data(Restrict(S{pair(1)},UMazeMovingEpoch{j})),...
+                Data(Restrict(S{pair(2)},UMazeMovingEpoch{j})),binsize,CCtime);
             C_Task_D{j}(i) = mean(C_Task);
             if C_Task_D{j}(i) == 0
                 C_Task_D{j}(i) = NaN;
             end
             % CondMoving
-            [C_CondMov,B]=CrossCorrDB(Range(Restrict(S{pair(1)},ConditioningMovingEpoch{j})),...
-                Range(Restrict(S{pair(2)},ConditioningMovingEpoch{j})),binsize,CCtime/binsize);
+            [C_CondMov,B]=CrossCorrDB(Data(Restrict(S{pair(1)},ConditioningMovingEpoch{j})),...
+                Data(Restrict(S{pair(2)},ConditioningMovingEpoch{j})),binsize,CCtime);
             C_CondMov_D{j}(i) = mean(C_CondMov);
             if C_CondMov_D{j}(i) == 0
                 C_CondMov_D{j}(i) = NaN;
             end
             % CondFreezing
-            [C_CondFreez,B]=CrossCorrDB(Range(Restrict(S{pair(1)},ConditioningFreezingEpoch{j})),...
-                Range(Restrict(S{pair(2)},ConditioningFreezingEpoch{j})),binsize,CCtime/binsize);
+            [C_CondFreez,B]=CrossCorrDB(Data(Restrict(S{pair(1)},ConditioningFreezingEpoch{j})),...
+                Data(Restrict(S{pair(2)},ConditioningFreezingEpoch{j})),binsize,CCtime);
             C_CondFreez_D{j}(i) = mean(C_CondFreez);
             if C_CondFreez_D{j}(i) == 0
                 C_CondFreez_D{j}(i) = NaN;
             end
             % PostSleep
-            [C_PostSleep,B]=CrossCorrDB(Range(Restrict(S{pair(1)},PostSleepFinal)),...
-                Range(Restrict(S{pair(2)},PostSleepFinal)),binsize,CCtime/binsize);
+            [C_PostSleep,B]=CrossCorrDB(Data(Restrict(S{pair(1)},PostSleepFinal)),...
+                Data(Restrict(S{pair(2)},PostSleepFinal)),binsize,CCtime);
             C_PostSleep_D{j}(i) = mean(C_PostSleep);
             if C_PostSleep_D{j}(i) == 0
                 C_PostSleep_D{j}(i) = NaN;
             end
             % PostTests
-            [C_PostTest,B]=CrossCorrDB(Range(Restrict(S{pair(1)},AfterConditioningMovingEpoch{j})),...
-                Range(Restrict(S{pair(2)},AfterConditioningMovingEpoch{j})),binsize,CCtime/binsize);
+            [C_PostTest,B]=CrossCorrDB(Data(Restrict(S{pair(1)},AfterConditioningMovingEpoch{j})),...
+                Data(Restrict(S{pair(2)},AfterConditioningMovingEpoch{j})),binsize,CCtime);
             C_PostTest_D{j}(i) = mean(C_PostTest);
             if C_PostTest_D{j}(i) == 0
                 C_PostTest_D{j}(i) = NaN;
