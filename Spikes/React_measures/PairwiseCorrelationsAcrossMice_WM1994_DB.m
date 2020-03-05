@@ -64,6 +64,7 @@ CPOSTTEST_D_std = zeros(1,length(Dir.path));
 
 %% Load Data
 for j=1:length(Dir.path)
+    
     cd(Dir.path{j}{1});
     load('SpikeData.mat','S','PlaceCells');
     load('behavResources.mat','SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd','FreezeAccEpoch');
