@@ -15,6 +15,8 @@
 % - Sleep - Run - Sleep - Run (_full)
 % - NREM - REM - Run - NREM - REM - Run (_stages)
 % - NREM_Split - REM_Split - Run - NREM_Split - REM_Split - Run (_splitStages)
+% 
+% Also conditioning but only for split data
 
 %% Parameters
 % Mice that go in the analysis
@@ -53,6 +55,10 @@ if ~isempty(splitSleep)
         QTASK_Split = cell(1,length(Dir.path)); % firing rate histogram
         EVSWS_Split = cell(1,numint);
         REVSWS_Split = cell(1,numint);
+        EVSWS_SplitCond = cell(1,numint);
+        REVSWS_SplitCond = cell(1,numint);
+        EVSWS_SplitCondFr = cell(1,numint);
+        REVSWS_SplitCondFr = cell(1,numint);
         
         
         for j = 1:length(length(Dir.path))
@@ -62,6 +68,10 @@ if ~isempty(splitSleep)
         for i=1:length(numint)
             EVSWS_Split{i} = zeros(1,length(Dir.path));
             REVSWS_Split{i} = zeros(1,length(Dir.path));
+            EVSWS_SplitCond{i} = zeros(1,length(Dir.path));
+            REVSWS_SplitCond{i} = zeros(1,length(Dir.path));
+            EVSWS_SplitCondFr{i} = zeros(1,length(Dir.path));
+            REVSWS_SplitCondFr{i} = zeros(1,length(Dir.path));
         end
     end
 end
@@ -71,6 +81,8 @@ QPRE = cell(1,length(Dir.path));
 QPRESWS = cell(1,length(Dir.path));
 QPREREM = cell(1,length(Dir.path));
 QTASK = cell(1,length(Dir.path));
+QCONDMOV = cell(1,length(Dir.path));
+QCONDFR = cell(1,length(Dir.path));
 QPOST = cell(1,length(Dir.path));
 QPOSTSWS = cell(1,length(Dir.path));
 QPOSTREM = cell(1,length(Dir.path));
@@ -96,7 +108,7 @@ for j=1:length(Dir.path)
     if isfield(PlaceCells,'idx')
         if length(PlaceCells.idx)>2
            
-            load('behavResources.mat','SessionEpoch', 'CleanVtsd');
+            load('behavResources.mat','SessionEpoch', 'CleanVtsd', 'FreezeAccEpoch');
             load('Ripples.mat','ripples');
             if strcmp(Dir.name{j}, 'Mouse906') || strcmp(Dir.name{j}, 'Mouse977') % Mice with bad OB-based sleep scoring
                 load('SleepScoring_Accelero.mat','SWSEpoch','REMEpoch','Sleep'); % Sleep is not used
@@ -132,6 +144,11 @@ for j=1:length(Dir.path)
             UMazeEpoch = or(UMazeEpoch,SessionEpoch.TestPre3);
             UMazeEpoch = or(UMazeEpoch,SessionEpoch.TestPre4);
             
+            % Conditioning Epoch
+            CondEpoch = or(SessionEpoch.Cond1,SessionEpoch.Cond2);
+            CondEpoch = or(CondEpoch,SessionEpoch.Cond3);
+            CondEpoch = or(CondEpoch,SessionEpoch.Cond4);
+            
             % After Conditioning
             AfterConditioningEpoch = or(SessionEpoch.TestPost1,SessionEpoch.TestPost2);
             AfterConditioningEpoch = or(AfterConditioningEpoch,SessionEpoch.TestPost3);
@@ -142,9 +159,11 @@ for j=1:length(Dir.path)
             VtsdSmoothed  = tsd(Range(CleanVtsd),movmedian(Data(CleanVtsd),5));
             LocomotionEpoch = thresholdIntervals(VtsdSmoothed,3,'Direction','Above');
             
-            % Get resulting epoch
+            % Get resulting epochs
             UMazeMovingEpoch = and(LocomotionEpoch, UMazeEpoch);
             AfterConditioningMovingEpoch = and(LocomotionEpoch, AfterConditioningEpoch);
+            CondMovingEpoch = and(LocomotionEpoch,CondEpoch);
+            CondFreezeEpoch = and(LocomotionEpoch,FreezeAccEpoch);
             
             %% Create firing rate histograms
             
@@ -157,7 +176,7 @@ for j=1:length(Dir.path)
             QPRE{j}=zscore(full(Data(Restrict(Q,SessionEpoch.PreSleep))));
             
             % PreSleep NREM
-            QPRESWS{j}=zscore(full(Data(Restrict(Q,and(SessionEpoch.PreSleep,SWSEpoch))))); % full sleep
+            QPRESWS{j}=zscore(full(Data(Restrict(Q,and(SessionEpoch.PreSleep,SWSEpoch))))); % full NREM sleep
 %             QPRESWS{j}=zscore(full(Data(Restrict(Q,PreSleepRipplesEpoch)))); % only during nREM ripples
 
             % PreSleep NREM binned if necessary
@@ -175,12 +194,19 @@ for j=1:length(Dir.path)
             % Exploration + PreTests (Locomotion only)
             QTASK{j}=zscore(full(Data(Restrict(Q,UMazeMovingEpoch))));
             
+            % Conitioning (Locomotion Only)
+            QCONDMOV{j}=zscore(full(Data(Restrict(Q,CondMovingEpoch))));
+            
+            % Conitioning (Freezing Only)
+%             QCONDFR{j}=zscore(full(Data(Restrict(Q,CondFreezeEpoch)))); % restricted to freezing
+            QCONDFR{j}=zscore(full(Data(Restrict(Q,and(CondEpoch, ripplesEpoch))))); % restricted to ripples
+            
             % PostSleep full
             QPOST{j}=full(Data(Restrict(Q,SessionEpoch.PostSleep)));
             
             % PostSleep NREM
-            QPOSTSWS{j}=zscore(full(Data(Restrict(Q,and(SessionEpoch.PostSleep,SWSEpoch))))); % full sleep
-            %             QPOSTSWS{j}=zscore(full(Data(Restrict(Q,PostSleepRipplesEpoch)))); % only during nREM ripples
+            QPOSTSWS{j}=zscore(full(Data(Restrict(Q,and(SessionEpoch.PostSleep,SWSEpoch))))); % full NREM sleep
+%             QPOSTSWS{j}=zscore(full(Data(Restrict(Q,PostSleepRipplesEpoch)))); % only during nREM ripples
             
             % PostSleep NREM binned if necessary
             if ~isempty(splitSleep)
@@ -198,7 +224,9 @@ for j=1:length(Dir.path)
             QPOSTTEST{j}=zscore(full(Data(Restrict(Q,AfterConditioningMovingEpoch))));
             
             % Get rid the variable unneccessry in future
-            clear Q SWSEpoch REMEpoch SessionEpoch ripples CleanVtsd
+            clear Q SWSEpoch REMEpoch SessionEpoch ripples CleanVtsd ripplesEpoch PreSleepRipplesEpoch
+            clear PostSleepRipplesEpoch UMazeEpoch CondEpoch AfterConditioningEpoch VtsdSmoothed LocomotionEpoch
+            clear UMazeMovingEpoch AfterConditioningMovingEpoch CondMovingEpoch CondFreezeEpoch FreezeAccEpoch
             
             %% Calculate the correlation maps and coefficients for split epochs
 
@@ -264,6 +292,8 @@ for j=1:length(Dir.path)
                 if splitSleep <= 20
                     QTASK_Split{j} = QTASK{j}; 
                     QTASK_Split{j}(:,idx_toremove_splitStages) = [];
+                    QCONDMOV{j}(:,idx_toremove_splitStages) = [];
+                    QCONDFR{j}(:,idx_toremove_splitStages) = [];
                     for i=1:numint
                         QPRESWS_Split{j}{i}(:,idx_toremove_splitStages) = [];
                         QPOSTSWS_Split{j}{i}(:,idx_toremove_splitStages) = [];
@@ -286,6 +316,26 @@ for j=1:length(Dir.path)
                     for i=1:numint
                         [EVSWS_Split{i}(j),REVSWS_Split{i}(j)] = ExplainedVariance(QPRESWS_Split{j}{i},...
                             QTASK_Split{j},QPOSTSWS_Split{j}{i});
+                    end
+                end
+            end
+            
+            %%%%%%%% Intance _splitStages task is locomotion during conditioning %%%%%%%%
+            if ~isempty(splitSleep)
+                if splitSleep <= 20
+                    for i=1:numint
+                        [EVSWS_SplitCond{i}(j),REVSWS_SplitCond{i}(j)] = ExplainedVariance(QPRESWS_Split{j}{i},...
+                            QCONDMOV{j},QPOSTSWS_Split{j}{i});
+                    end
+                end
+            end
+            
+            %%%%%%%% Intance _splitStages task is freezing during conditioning %%%%%%%%
+            if ~isempty(splitSleep)
+                if splitSleep <= 20
+                    for i=1:numint
+                        [EVSWS_SplitCondFr{i}(j),REVSWS_SplitCondFr{i}(j)] = ExplainedVariance(QPRESWS_Split{j}{i},...
+                            QCONDFR{j},QPOSTSWS_Split{j}{i});
                     end
                 end
             end
@@ -326,6 +376,10 @@ if ~isempty(splitSleep)
         for i=1:numint
             EVSWS_Split{i} = nonzeros(EVSWS_Split{i});
             REVSWS_Split{i} = nonzeros(REVSWS_Split{i});
+            EVSWS_SplitCond{i} = nonzeros(EVSWS_SplitCond{i});
+            REVSWS_SplitCond{i} = nonzeros(REVSWS_SplitCond{i});
+            EVSWS_SplitCondFr{i} = nonzeros(EVSWS_SplitCondFr{i});
+            REVSWS_SplitCondFr{i} = nonzeros(REVSWS_SplitCondFr{i});
         end
     end
 end
@@ -426,7 +480,102 @@ if ~isempty(splitSleep)
         set(h_occ, 'LineWidth', 3);
         set(her_occ, 'LineWidth', 3);
         ylabel('% explained');
-        title('EV (black) and REV (white) split in intervals', 'FontSize', 14);
+        title('EV (black) and REV (white) split in intervals (naive exploration)', 'FontSize', 14);
+    end
+end
+
+%% Plot the figure with dynamics (Conditioning locomotion)
+if ~isempty(splitSleep)
+    if splitSleep <= 20
+        
+        fi = figure('units', 'normalized', 'outerposition', [0 0 0.8 0.5]);
+        
+        % Prepare the data
+        % NREM Sleep
+        dat_SWS =  EVSWS_SplitCond{1};
+        for i=1:numint
+            if i == 1
+                dat_SWS = [dat_SWS REVSWS_SplitCond{i}];
+                dat_SWS = [dat_SWS zeros(size(dat_SWS,1),1)];
+            elseif i == numint
+                dat_SWS = [dat_SWS EVSWS_SplitCond{i}];
+                dat_SWS = [dat_SWS REVSWS_SplitCond{i}];
+            else
+                dat_SWS = [dat_SWS EVSWS_SplitCond{i}];
+                dat_SWS = [dat_SWS REVSWS_SplitCond{i}];
+                dat_SWS = [dat_SWS zeros(size(dat_SWS,1),1)];
+            end
+        end
+
+        % Plot
+        
+        [p_occ,h_occ, her_occ] = PlotErrorBarN_DB(dat_SWS*100,...
+            'barcolors', [0 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints',1);
+        h_occ.FaceColor = 'flat';
+        h_occ.CData(2,:) = [1 1 1];
+        for i=2:3:size(dat_SWS,2)
+            h_occ.CData(i,:) = [1 1 1];
+        end
+        labels = ['0-' num2str(splitSleep) ' min'];
+        for i=2:numint
+            labels = {labels,[num2str((i-1)*splitSleep) '-' num2str(i*splitSleep) ' min']};
+        end
+        
+        set(gca,'Xtick',[1:3:size(dat_SWS,2)],'XtickLabel',labels);
+        set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+        set(gca, 'LineWidth', 3);
+        set(h_occ, 'LineWidth', 3);
+        set(her_occ, 'LineWidth', 3);
+        ylabel('% explained');
+        title('EV (black) and REV (white) split in intervals (run during conditioning)', 'FontSize', 14);
+    end
+end
+
+
+%% Plot the figure with dynamics (Conditioning freezing)
+if ~isempty(splitSleep)
+    if splitSleep <= 20
+        
+        fi = figure('units', 'normalized', 'outerposition', [0 0 0.8 0.5]);
+        
+        % Prepare the data
+        % NREM Sleep
+        dat_SWS =  EVSWS_SplitCondFr{1};
+        for i=1:numint
+            if i == 1
+                dat_SWS = [dat_SWS REVSWS_SplitCondFr{i}];
+                dat_SWS = [dat_SWS zeros(size(dat_SWS,1),1)];
+            elseif i == numint
+                dat_SWS = [dat_SWS EVSWS_SplitCondFr{i}];
+                dat_SWS = [dat_SWS REVSWS_SplitCondFr{i}];
+            else
+                dat_SWS = [dat_SWS EVSWS_SplitCondFr{i}];
+                dat_SWS = [dat_SWS REVSWS_SplitCondFr{i}];
+                dat_SWS = [dat_SWS zeros(size(dat_SWS,1),1)];
+            end
+        end
+
+        % Plot
+        
+        [p_occ,h_occ, her_occ] = PlotErrorBarN_DB(dat_SWS*100,...
+            'barcolors', [0 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints',1);
+        h_occ.FaceColor = 'flat';
+        h_occ.CData(2,:) = [1 1 1];
+        for i=2:3:size(dat_SWS,2)
+            h_occ.CData(i,:) = [1 1 1];
+        end
+        labels = ['0-' num2str(splitSleep) ' min'];
+        for i=2:numint
+            labels = {labels,[num2str((i-1)*splitSleep) '-' num2str(i*splitSleep) ' min']};
+        end
+        
+        set(gca,'Xtick',[1:3:size(dat_SWS,2)],'XtickLabel',labels);
+        set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+        set(gca, 'LineWidth', 3);
+        set(h_occ, 'LineWidth', 3);
+        set(her_occ, 'LineWidth', 3);
+        ylabel('% explained');
+        title('EV (black) and REV (white) split in intervals (freeze during conditioning)', 'FontSize', 14);
     end
 end
 
