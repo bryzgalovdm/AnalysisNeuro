@@ -17,6 +17,10 @@
 % - NREM_Split - REM_Split - Run - NREM_Split - REM_Split - Run (_splitStages)
 % 
 % Also conditioning but only for split data 
+% 
+% TODO (insiration - Kudrimoti et al., 1999):
+% - Control for FR of neurons
+% - Plot mean pairwise correlations
 
 %% Parameters
 % Mice that go in the analysis
