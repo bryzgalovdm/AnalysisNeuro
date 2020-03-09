@@ -180,7 +180,7 @@ if exist('channel_ob','var')
         ph4Hz.Nontransf{i} = ph_temp{i}.Nontransf;
         ph4Hz.Transf{i} = ph_temp{i}.Transf;
         
-        if ~isempty(mu4Hz{i}.Nontransf) || ~isempty(mu4Hz{i}.Transf)
+        if ~isempty(mu_temp{i}.Nontransf) || ~isempty(mu_temp{i}.Transf)
             mu4Hz.Nontransf(i) = mu_temp{i}.Nontransf;
             mu4Hz.Transf(i) = mu_temp{i}.Transf;
         else
@@ -188,7 +188,7 @@ if exist('channel_ob','var')
             mu4Hz.Transf(i) = NaN;
         end
         
-        if ~isempty(mu4Hz{i}.Nontransf) || ~isempty(mu4Hz{i}.Transf)
+        if ~isempty(Kappa_temp{i}.Nontransf) || ~isempty(Kappa_temp{i}.Transf)
             Kappa4Hz.Nontransf(i) = Kappa_temp{i}.Nontransf;
             Kappa4Hz.Transf(i) = Kappa_temp{i}.Transf;
         else
@@ -196,7 +196,7 @@ if exist('channel_ob','var')
             Kappa4Hz.Transf(i) = NaN;
         end
         
-        if ~isempty(mu4Hz{i}.Nontransf) || ~isempty(mu4Hz{i}.Transf)
+        if ~isempty(pval_temp{i}.Nontransf) || ~isempty(pval_temp{i}.Transf)
             pval4Hz.Nontransf(i) = pval_temp{i}.Nontransf;
             pval4Hz.Transf(i) = pval_temp{i}.Transf;
         else
@@ -204,7 +204,7 @@ if exist('channel_ob','var')
             pval4Hz.Transf(i) = NaN;
         end
         
-        if ~isempty(mu4Hz{i}.Nontransf) || ~isempty(mu4Hz{i}.Transf)
+        if ~isempty(Z_temp{i}.Nontransf) || ~isempty(Z_temp{i}.Transf)
             Z4Hz.Nontransf(i) = Z_temp{i}.Nontransf;
             Z4Hz.Transf(i) = Z_temp{i}.Transf;
         else
