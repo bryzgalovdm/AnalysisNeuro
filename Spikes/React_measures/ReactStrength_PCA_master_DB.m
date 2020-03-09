@@ -5,7 +5,8 @@ nmouse = [994];
 Dir = PathForExperimentsERC_Dima('UMazePAG');
 Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 
-Binsize = 0.1*1e4;
+% binsize for firing rate histogram (in timestamps!!!)
+binsize = 2000; % =100ms (sampling rate = 20000Hz);
 
 sav = 0;
 
@@ -74,7 +75,7 @@ PostSleepRipplesEpochSWS = and(PostSleepEpochSWS,PostRipplesEpoch);
 
 %% Make Q
 
-Q = MakeQfromS(S,Binsize);
+Q = MakeQfromS(S,binsize);
 % QTemplatePost = Restrict(Q,CondPostRipplesEpoch);
 % QTemplatePre = Restrict(Q,CondPreRipplesEpoch);
 QTemplatePost = Restrict(Q,PSleepPostRipplesEpoch);
