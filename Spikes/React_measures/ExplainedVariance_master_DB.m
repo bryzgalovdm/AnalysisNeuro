@@ -16,11 +16,11 @@
 % - NREM - REM - Run - NREM - REM - Run (_stages)
 % - NREM_Split - REM_Split - Run - NREM_Split - REM_Split - Run (_splitStages)
 % 
-% Also conditioning but only for split data
+% Also conditioning but only for split data 
 
 %% Parameters
 % Mice that go in the analysis
-nmouse = [797 798 828 861 882 905 906 911 977 994];
+nmouse = [797 798 828 861 882 905 906 911 912 977 994];
 % nmouse = [906 912]; % Had PreMazes
 % nmouse = [905 911]; % Did not have PreMazes
 
@@ -83,6 +83,8 @@ QPREREM = cell(1,length(Dir.path));
 QTASK = cell(1,length(Dir.path));
 QCONDMOV = cell(1,length(Dir.path));
 QCONDFR = cell(1,length(Dir.path));
+QTASK_Whole = cell(1,length(Dir.path));
+QTASK_WholeMov = cell(1,length(Dir.path));
 QPOST = cell(1,length(Dir.path));
 QPOSTSWS = cell(1,length(Dir.path));
 QPOSTREM = cell(1,length(Dir.path));
@@ -92,6 +94,8 @@ QPOSTTEST = cell(1,length(Dir.path));
 CorrM = cell(1,length(Dir.path));
 
 % Explained variance and reverse explained variance
+EV_whole = zeros(1,length(Dir.path));
+REV_whole = zeros(1,length(Dir.path));
 EV = zeros(1,length(Dir.path));
 REV = zeros(1,length(Dir.path));
 EVSWS = zeros(1,length(Dir.path));
@@ -149,6 +153,9 @@ for j=1:length(Dir.path)
             CondEpoch = or(CondEpoch,SessionEpoch.Cond3);
             CondEpoch = or(CondEpoch,SessionEpoch.Cond4);
             
+            % Whole task epoch
+            TaskEpoch = or(UMazeEpoch,CondEpoch);
+            
             % After Conditioning
             AfterConditioningEpoch = or(SessionEpoch.TestPost1,SessionEpoch.TestPost2);
             AfterConditioningEpoch = or(AfterConditioningEpoch,SessionEpoch.TestPost3);
@@ -164,6 +171,7 @@ for j=1:length(Dir.path)
             AfterConditioningMovingEpoch = and(LocomotionEpoch, AfterConditioningEpoch);
             CondMovingEpoch = and(LocomotionEpoch,CondEpoch);
             CondFreezeEpoch = and(LocomotionEpoch,FreezeAccEpoch);
+            TaskMovingEpoch = and(LocomotionEpoch,TaskEpoch);
             
             %% Create firing rate histograms
             
@@ -201,6 +209,12 @@ for j=1:length(Dir.path)
 %             QCONDFR{j}=zscore(full(Data(Restrict(Q,CondFreezeEpoch)))); % restricted to freezing
             QCONDFR{j}=zscore(full(Data(Restrict(Q,and(CondEpoch, ripplesEpoch))))); % restricted to ripples
             
+            % Whole task (Locomotion only)
+            QTASK_Whole{j}=zscore(full(Data(Restrict(Q,TaskMovingEpoch))));
+            
+            % Whole task (everything)
+            QTASK_WholeMov{j}=zscore(full(Data(Restrict(Q,TaskEpoch))));
+            
             % PostSleep full
             QPOST{j}=full(Data(Restrict(Q,SessionEpoch.PostSleep)));
             
@@ -224,9 +238,9 @@ for j=1:length(Dir.path)
             QPOSTTEST{j}=zscore(full(Data(Restrict(Q,AfterConditioningMovingEpoch))));
             
             % Get rid the variable unneccessry in future
-            clear Q SWSEpoch REMEpoch SessionEpoch ripples CleanVtsd ripplesEpoch PreSleepRipplesEpoch
+            clear Q SWSEpoch REMEpoch SessionEpoch ripples CleanVtsd ripplesEpoch PreSleepRipplesEpoch TaskEpoch
             clear PostSleepRipplesEpoch UMazeEpoch CondEpoch AfterConditioningEpoch VtsdSmoothed LocomotionEpoch
-            clear UMazeMovingEpoch AfterConditioningMovingEpoch CondMovingEpoch CondFreezeEpoch FreezeAccEpoch
+            clear UMazeMovingEpoch AfterConditioningMovingEpoch CondMovingEpoch CondFreezeEpoch FreezeAccEpoch TaskMovingEpoch
             
             %% Calculate the correlation maps and coefficients for split epochs
 
@@ -304,6 +318,9 @@ for j=1:length(Dir.path)
             %% Calculate EV and REV
             
             %%%%%%%% Intance _full %%%%%%%%
+            [EV_whole(j),REV_whole(j)] = ExplainedVariance(QPRE{j},QTASK_WholeMov{j},QPOST{j});
+            
+            %%%%%%%% Intance _full %%%%%%%%
             [EV(j),REV(j)] = ExplainedVariance(QPRE{j},QTASK{j},QPOST{j});
             
             %%%%%%%% Intance _stages %%%%%%%%
@@ -350,6 +367,8 @@ QPRE = QPRE(~cellfun('isempty',QPRE));
 QPRESWS = QPRESWS(~cellfun('isempty',QPRESWS));
 QPREREM = QPREREM(~cellfun('isempty',QPREREM));
 QTASK = QTASK(~cellfun('isempty',QTASK));
+QTASK_Whole = QTASK_Whole(~cellfun('isempty',QTASK_Whole));
+QTASK_WholeMov = QTASK_WholeMov(~cellfun('isempty',QTASK_WholeMov));
 QPOST = QPOST(~cellfun('isempty',QPOST));
 QPOSTSWS = QPOSTSWS(~cellfun('isempty',QPOSTSWS));
 QPOSTREM = QPOSTREM(~cellfun('isempty',QPOSTREM));
@@ -364,6 +383,8 @@ end
 
 CorrM = CorrM(~cellfun('isempty',CorrM));
 
+EV_whole = nonzeros(EV_whole);
+REV_whole = nonzeros(REV_whole);
 EV = nonzeros(EV);
 REV = nonzeros(REV);
 EVSWS = nonzeros(EVSWS);
@@ -390,6 +411,20 @@ fprintf(['~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ \n',...
     '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ \n']);
 
 %% Plot
+
+% Figure whole
+fa = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.5]);
+[p_occ,h_occ, her_occ] = PlotErrorBarN_DB([EV_whole*100 REV_whole*100],...
+    'barcolors', [1 1 1], 'barwidth', 0.6, 'newfig', 0, 'showpoints',1);
+h_occ.FaceColor = 'flat';
+h_occ.CData(2,:) = [0 0 0];
+set(gca,'Xtick',[1:2],'XtickLabel',{'EV', 'REV'});
+set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+set(h_occ, 'LineWidth', 3);
+set(her_occ, 'LineWidth', 3);
+ylabel('% explained');
+title('Pre-Post sleep EV full task', 'FontSize', 14);
 
 % Figure
 fh = figure('units', 'normalized', 'outerposition', [0 0 0.8 0.5]);
