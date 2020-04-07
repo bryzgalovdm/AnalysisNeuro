@@ -5,12 +5,12 @@
 % (4 * 4 min = 16 min overall). Control is correlation between the first half
 % and the second half of pre-exploration (7,5 min each)
 % 
-% Last touched on 03/04/2020
+% It plots out only cells with within-session stability <= 0.5
+% 
+% Last touched on 07/04/2020
 % 
 % By Dima Bryzgalov, MOBS team, Paris
-%
-% TODO: you need to track each place cell
-% get the cells with the same cell stability <0.3
+% 
 
 %% Parameters
 
@@ -30,6 +30,11 @@ speed_thresh = 3;
 % Do you want to save a figure?
 sav = 0;
 
+% Paths and names to save
+pathfig = '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/';
+figbox = 'Stability_PrePost_box';
+figbar = 'Stability_PrePost_bar';
+
 %% How many cells do you have
 numPCs = CountPlaceCells(Dir);
 
@@ -41,6 +46,7 @@ cnt=0;
 % Allocate memory
 CorrStabSameCell = nan(1,numPCs);
 CorrStabAfterCondCell = nan(1,numPCs);
+idPC = cell(1, numPCs);
 
 for j=1:length(Dir.path)
     
@@ -79,6 +85,8 @@ for j=1:length(Dir.path)
     % Calculate same cell stabity
     if isfield(spikes.PlaceCells,'idx')
         for i=1:length(spikes.PlaceCells.idx)
+            cnt=cnt+1;
+            idPC{cnt} = [j spikes.PlaceCells.idx(i)];
             try % this try-catch syntax avoids spitting out an error in a situation when there are too less spikes for analysis on one half of the recording
                 map1 = PlaceField_DB(Restrict(spikes.S{spikes.PlaceCells.idx(i)},MovingHab1Half),... % 1st half
                     Restrict(beh.CleanAlignedXtsd, MovingHab1Half),...
@@ -92,11 +100,8 @@ for j=1:length(Dir.path)
             end
             % Correlation coefficient
             if ~isempty(map1) && ~isempty(map2)
-                cnt=cnt+1;
                 de = corrcoef(map1.rate,map2.rate);
                 CorrStabSameCell(cnt) = de(2,1);
-            else
-                cnt=cnt+1;
             end
         
         clear map1 map2
@@ -118,6 +123,8 @@ for j=1:length(Dir.path)
                 de = corrcoef(map1.rate,map2.rate);
                 CorrStabAfterCondCell(cnt) = de(2,1);
             end
+            
+            clear map1 map2
         end
     end
     clear spikes beh st en LocomotionEpoch MovingHab1Half MovingHab2Half AfterConditioningMovingEpoch BigMazeMovingEpoch UMazeMovingEpoch
@@ -129,33 +136,96 @@ end
 StabilityAcrossExperiment = [CorrStabSameCell' CorrStabAfterCondCell']; % first column - within session, second - across aversive learning
 
 idxnan = isnan(StabilityAcrossExperiment);
-idxdel = false(1,numPCs);
-for i = 1:length(col1nan)
+idxdel_even = false(1,numPCs);
+for i = 1:length(idxnan)
     if idxnan(i,1) || idxnan(i,2)
-        idxdel(i) = true;
+        idxdel_even(i) = true;
     end
 end
-StabilityAcrossExperiment(idxdel,:) = [];
+StabilityAcrossExperiment_even = StabilityAcrossExperiment;
+StabilityAcrossExperiment_even(idxdel_even,:) = [];
 
 % Second, all correlations calculated (arrays are not equal in length)
 CorrStabSameCell_all = CorrStabSameCell(~isnan(CorrStabSameCell));
 CorrStabAfterCondCell_all = CorrStabAfterCondCell(~isnan(CorrStabAfterCondCell));
 
+%% Grab instances in which place fields are not found or within session stability < 0.5
+badcases = cell(1,numPCs);
+idxdel_bad = false(1,numPCs);
+for i = 1:numPCs
+    if isnan(CorrStabSameCell(i)) || CorrStabSameCell(i) < 0.5
+        badcases{i} = idPC{i};
+        idxdel_bad(i) = true;
+    end
+end
+badcases = badcases(~cellfun('isempty',badcases));
+
+% Remove all bad cases
+idxdel = or(idxdel_even, idxdel_bad);
+
+StabilityAcrossExperiment_clean = StabilityAcrossExperiment;
+StabilityAcrossExperiment_clean(idxdel,:) = [];
+
+
+%% Plot bad cases
+% for i=1:length(badcases)
+%     cd(Dir.path{badcases{i}(1)}{1});
+%     load ('SpikeData.mat', 'S', 'PlaceCells');
+%     load('behavResources.mat','SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd');
+%     % Locomotion threshold
+%     LocomotionEpoch = thresholdIntervals(tsd(Range(CleanVtsd),movmedian(Data(CleanVtsd),5)),2.5,'Direction','Above'); % smoothing = 5   
+%     % Get resulting epochs
+%     UMazeMovingEpoch = and(SessionEpoch.Hab, LocomotionEpoch);
+%     map = PlaceField_DB(Restrict(S{badcases{i}(2)},UMazeMovingEpoch),... % 1st half
+%                     Restrict(CleanAlignedXtsd, UMazeMovingEpoch),...
+%                     Restrict(CleanAlignedYtsd, UMazeMovingEpoch), 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
+% %     map = PlaceField_DB(Restrict(S{badcases{i}(2)},SessionEpoch.Hab),... % 1st half
+% %                     Restrict(CleanAlignedXtsd, SessionEpoch.Hab),...
+% %                     Restrict(CleanAlignedYtsd, SessionEpoch.Hab), 'smoothing', 2.5, 'size', 50, 'plotresults',1, 'plotpoisson', 1);
+%     figure
+%     imagesc(map.rate);
+%     colormap jet
+%     title([Dir.name{badcases{i}(1)} '  PC#' num2str(badcases{i}(2))]);
+%     
+%     clear S PlaceCells SessionEpoch CleanVtsd CleanAlignedXtsd CleanAlignedYtsd LocomotionEpoch UMazeMovingEpoch map
+%     
+% end
+    
+
 %% Plot boxplot
-Pl = {CorrStabAfterCondCell_all; CorrStabSameCell_all};
+% Pl = {CorrStabAfterCondCell_all; CorrStabSameCell_all};
+% Pl = {StabilityAcrossExperiment_clean(:,2); StabilityAcrossExperiment_clean(:,1)};
+% 
+% Cols = {[0.7 0.7 0.7], [0.2 0.2 0.2]};
+% 
+% fh = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.7]);
+% MakeSpreadAndBoxPlot_SB(Pl,Cols,[1,2],{},1);
+% set(gca,'LineWidth',3,'FontWeight','bold','FontSize',16,'XTick',1:2,'XTickLabel',{'PreVsPost','WithinBaselineSession'})
+% ylim([0 0.9])
+% ylabel('Correlation Coef.')
+% title('Place cell stability after conditioning')
 
-Cols = {[0.7 0.7 0.7], [0.2 0.2 0.2]};
-
-fh = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.7]);
-MakeSpreadAndBoxPlot_SB(Pl,Cols,[1,2],{},1);
-set(gca,'LineWidth',3,'FontWeight','bold','FontSize',16,'XTick',1:2,'XTickLabel',{'PreVsPost','WithinBaselineSession'})
-ylim([0 0.9])
-ylabel('Correlation Coef.')
-title('Place cell stability after conditioning')
-
-% saveas(fh,'/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/Stability_PrePostAllCells.fig');
-% saveFigure(fh,'Stability_PrePostAllCells','/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/');
+% if sav
+%     saveas(fh,[pathfig figbox '.fig']);
+%     saveFigure(fh,figbox,pathfig);
+% end
 
 %% Plot barplot
 
-% PlotErrorBarN_DB(StabilityAcrossExperiment)
+figure
+[p_s,h_s, her_s] = PlotErrorBarN_DB(StabilityAcrossExperiment_clean, 'barcolors', [0 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints',1);
+% h_s.FaceColor = 'flat'; 
+% h_s.CData(2,:) = [1 1 1]; % It does not work in 2016b
+set(gca,'Xtick',[1:2],'XtickLabel',{'PreVsPost', 'WithinSession'});
+set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+set(h_s, 'LineWidth', 3);
+set(her_s, 'LineWidth', 3);
+ylabel('Correlation coeff.');
+title('Place cells stability', 'FontSize', 14);
+ylim([0 1])
+
+if sav
+    saveas(fh,[pathfig figbar '.fig']);
+    saveFigure(fh,figbar,pathfig);
+end
