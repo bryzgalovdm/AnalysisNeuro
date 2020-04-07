@@ -28,7 +28,7 @@ Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 speed_thresh = 3;
 
 % Do you want to save a figure?
-sav = true;
+sav = false;
 
 % Paths and names to save
 pathfig = '/MOBS_workingON/Dima/Ongoing_results/PlaceField_Final/Stability/'; % without dropbox path
@@ -47,6 +47,7 @@ cnt=0;
 CorrStabSameCell = nan(1,numPCs);
 CorrStabAfterCondCell = nan(1,numPCs);
 idPC = cell(1, numPCs);
+idxSZ = false(1, numPCs);
 
 for j=1:length(Dir.path)
     
@@ -87,6 +88,10 @@ for j=1:length(Dir.path)
         for i=1:length(spikes.PlaceCells.idx)
             cnt=cnt+1;
             idPC{cnt} = [j spikes.PlaceCells.idx(i)];
+            % Grab shock zone place cells
+            if sum(idPC{cnt}(2) == spikes.PlaceCells.SZ)
+                idxSZ(cnt) = true;
+            end
             try % this try-catch syntax avoids spitting out an error in a situation when there are too less spikes for analysis on one half of the recording
                 map1 = PlaceField_DB(Restrict(spikes.S{spikes.PlaceCells.idx(i)},MovingHab1Half),... % 1st half
                     Restrict(beh.CleanAlignedXtsd, MovingHab1Half),...
@@ -162,21 +167,31 @@ badcases = badcases(~cellfun('isempty',badcases));
 
 % Remove all bad cases
 idxdel = or(idxdel_even, idxdel_bad);
+idxdelSZ = or(or(idxdel_even,idxdel_bad),idxSZ);
+idxbigSZ = and(not(or(idxdel_even,idxdel_bad)),idxSZ);
 
 StabilityAcrossExperiment_clean = StabilityAcrossExperiment;
 StabilityAcrossExperiment_clean(idxdel,:) = [];
 
+% NoShockZones
+StabilityAcrossExperiment_clean_NSZ = StabilityAcrossExperiment;
+StabilityAcrossExperiment_clean_NSZ(idxdelSZ,:) = [];
+
+% ShockZones
+StabilityAcrossExperiment_clean_SZ = StabilityAcrossExperiment;
+StabilityAcrossExperiment_clean_SZ = StabilityAcrossExperiment_clean_SZ(idxbigSZ,:);
+
 
 %% Grab shock zone cells
-SZcells = cell(1,numPCs);
-idxdel_SZ = false(1,numPCs);
-for i = 1:numPCs
-    if isnan(CorrStabSameCell(i)) || CorrStabSameCell(i) < 0.5
-        badcases{i} = idPC{i};
-        idxdel_bad(i) = true;
-    end
-end
-badcases = badcases(~cellfun('isempty',badcases));
+% SZcells = cell(1,numPCs);
+% idxdel_SZ = false(1,numPCs);
+% for i = 1:numPCs
+%     if isnan(CorrStabSameCell(i)) || CorrStabSameCell(i) < 0.5
+%         badcases{i} = idPC{i};
+%         idxdel_bad(i) = true;
+%     end
+% end
+% badcases = badcases(~cellfun('isempty',badcases));
 
 %% Plot bad cases
 % for i=1:length(badcases)
