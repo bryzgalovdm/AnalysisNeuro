@@ -31,7 +31,7 @@ speed_thresh = 3;
 sav = true;
 
 % Paths and names to save
-pathfig = '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/'; % without dropbox path
+pathfig = '/MOBS_workingON/Dima/Ongoing_results/PlaceField_Final/Stability/'; % without dropbox path
 figbox = 'Stability_PrePost_box';
 figbar = 'Stability_PrePost_bar';
 
@@ -234,7 +234,7 @@ set(h_s, 'LineWidth', 3);
 set(her_s, 'LineWidth', 3);
 ylabel('Correlation coeff.');
 title('Place cells stability', 'FontSize', 14);
-ylim([-0.1 1.1])
+ylim([-0.15 1.1])
 
 if sav
     saveas(fb,[dropbox pathfig figbar '.fig']);
