@@ -28,10 +28,10 @@ Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 speed_thresh = 3;
 
 % Do you want to save a figure?
-sav = 0;
+sav = 1;
 
 % Paths and names to save
-pathfig = '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/';
+pathfig = '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/'; % without dropbox path
 figbox = 'Stability_PrePost_box';
 figbar = 'Stability_PrePost_bar';
 
@@ -196,7 +196,7 @@ StabilityAcrossExperiment_clean(idxdel,:) = [];
 % Pl = {CorrStabAfterCondCell_all; CorrStabSameCell_all};
 % Pl = {StabilityAcrossExperiment_clean(:,2); StabilityAcrossExperiment_clean(:,1)};
 % 
-% Cols = {[0.7 0.7 0.7], [0.2 0.2 0.2]};
+% Cols = {[0.2 0.2 0.2], [0.7 0.7 0.7]};
 % 
 % fh = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.7]);
 % MakeSpreadAndBoxPlot_SB(Pl,Cols,[1,2],{},1);
@@ -212,10 +212,10 @@ StabilityAcrossExperiment_clean(idxdel,:) = [];
 
 %% Plot barplot
 
-figure
+fb = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.7]);
 [p_s,h_s, her_s] = PlotErrorBarN_DB(StabilityAcrossExperiment_clean, 'barcolors', [0 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints',1);
-% h_s.FaceColor = 'flat'; 
-% h_s.CData(2,:) = [1 1 1]; % It does not work in 2016b
+h_s.FaceColor = 'flat'; 
+h_s.CData(2,:) = [1 1 1]; % It does not work in 2016b
 set(gca,'Xtick',[1:2],'XtickLabel',{'PreVsPost', 'WithinSession'});
 set(gca, 'FontSize', 14, 'FontWeight',  'bold');
 set(gca, 'LineWidth', 3);
@@ -223,9 +223,14 @@ set(h_s, 'LineWidth', 3);
 set(her_s, 'LineWidth', 3);
 ylabel('Correlation coeff.');
 title('Place cells stability', 'FontSize', 14);
-ylim([0 1])
+ylim([-0.1 1.1])
 
 if sav
-    saveas(fh,[pathfig figbar '.fig']);
-    saveFigure(fh,figbar,pathfig);
+    saveas(fb,[dropbox pathfig figbar '.fig']);
+    saveFigure(fb,figbar,[dropbox pathfig]);
 end
+
+%% Plot distribution of within-session stability
+
+% figure
+% hist(CorrStabSameCell_all,10)
