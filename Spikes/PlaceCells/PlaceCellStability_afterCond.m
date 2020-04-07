@@ -28,7 +28,7 @@ Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 speed_thresh = 3;
 
 % Do you want to save a figure?
-sav = 1;
+sav = true;
 
 % Paths and names to save
 pathfig = '/MOBS_workingON/Dima/Ongoing results/PlaceField_Final/'; % without dropbox path
@@ -166,6 +166,17 @@ idxdel = or(idxdel_even, idxdel_bad);
 StabilityAcrossExperiment_clean = StabilityAcrossExperiment;
 StabilityAcrossExperiment_clean(idxdel,:) = [];
 
+
+%% Grab shock zone cells
+SZcells = cell(1,numPCs);
+idxdel_SZ = false(1,numPCs);
+for i = 1:numPCs
+    if isnan(CorrStabSameCell(i)) || CorrStabSameCell(i) < 0.5
+        badcases{i} = idPC{i};
+        idxdel_bad(i) = true;
+    end
+end
+badcases = badcases(~cellfun('isempty',badcases));
 
 %% Plot bad cases
 % for i=1:length(badcases)
