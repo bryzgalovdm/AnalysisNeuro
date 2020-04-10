@@ -1,4 +1,4 @@
-function [map,mapNS,stats,px,py,FR]=PlaceField_DB(tsa,XS,YS,varargin)
+function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, varargin)
 
 % INPUT
 % 
@@ -31,6 +31,11 @@ function [map,mapNS,stats,px,py,FR]=PlaceField_DB(tsa,XS,YS,varargin)
 %     stats.field    firing field (1 = bin in field, 0 = bin not in field)
 %     stats.fieldX   firing field x boundaries (in bins)
 %     stats.fieldY   firing field y boundaries (in bins)
+%     px             x-coordinates of spikes
+%     py             y-coordinates of spikes
+%     FR             firing rate of a neuron in a given epoch
+%     xB             x-coordinates of spatial bins' centers
+%     yB             y-coordinates of spatial bins' centers
 %
 %  NOTE
 %
@@ -59,7 +64,7 @@ function [map,mapNS,stats,px,py,FR]=PlaceField_DB(tsa,XS,YS,varargin)
 %
 % 
 % Corrected by Dima Bryzgalov on the basis of common code from MOBS team, Paris, France
-% 02/04/2020
+% 10/04/2020
 
 %% Parameters handling
 
@@ -162,22 +167,29 @@ end
 px =Data(Restrict(XS,tsa,'align','closest'));
 py =Data(Restrict(YS,tsa,'align','closest'));
 
-[occH, x1, x2] = hist2d(Data(XS), Data(YS), sizeMap, sizeMap);
+[occH, xB, yB] = hist2d(Data(XS), Data(YS), sizeMap, sizeMap);
 
 % Restrict movement arrays by spike times
 pX = Restrict(XS,tsa,'align','closest');
 pY = Restrict(YS, tsa,'align','closest');
 
 %% Create 2D histogram of spike counts
-pfH = hist2d(Data(pX), Data(pY), x1, x2);
+pfH = hist2d(Data(pX), Data(pY), xB, yB);
 
 %% Create rate maps
 pf = freqVideo * pfH./occH;
 
-% Add edges to the map
+% Add edges to the map (sizeMap/8 pixels on each side)
 if LMatrix
     largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
     largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = pf;
+    % Add spatial bins
+    firstbinX = min(Data(XS)) - (sizeMap/8)*(xB(2)-xB(1));
+    lastbinX = max(Data(XS)) + (sizeMap/8)*(xB(2)-xB(1));
+    xB = [linspace(firstbinX, min(Data(XS)), sizeMap/8) xB linspace(max(Data(XS)), lastbinX, sizeMap/8)];
+    firstbinY = min(Data(YS)) - (sizeMap/8)*(yB(2)-yB(1));
+    lastbinY = max(Data(YS)) + (sizeMap/8)*(yB(2)-yB(1));
+    yB = [linspace(firstbinY, min(Data(YS)), sizeMap/8) yB linspace(max(Data(YS)), lastbinY, sizeMap/8)];
     pf = largerMatrix;
 end
 
