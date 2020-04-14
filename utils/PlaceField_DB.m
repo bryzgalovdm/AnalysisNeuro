@@ -11,7 +11,7 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %     smoothing      spatial smooting factor (default - 3)
 %     freqVideo      sampling rate of the video (default - 15)
 %     threshold      to define place field which is area around peak where FR >= threshold*peak (default - 0.7)
-%     size           size of the map (it will be size * size) in pixels
+%     sizemap           size of the map (it will be size * size) in pixels
 %     LargeMatrix    if 1 edges will be added to maps (default - 1 or True)
 %     PlotResults    plot the main figure (occupancy, spike counts, rate maps + movements) (default - 1)
 %     PlotPoisson    plot the figure that compares the actual rate map with rate maps of the poisson-distributed set of the same data (default - 1)
@@ -90,7 +90,7 @@ for i=1:2:length(varargin)
                 error('Incorrect value for property ''Threshold'' (type ''help PlaceField_DB'' for details).');
             end
             
-        case 'size'
+        case 'sizemap'
             sizeMap = varargin{i+1};
             if ~isa(sizeMap,'numeric')
                 error('Incorrect value for property ''Size'' (type ''help PlaceField_DB'' for details).');
@@ -98,7 +98,7 @@ for i=1:2:length(varargin)
             
         case 'largematrix'
             LMatrix = varargin{i+1};
-            if ~isa(sizeMap,'logical') || ~isa(sizeMap,'numerical') 
+            if ~isa(LMatrix,'logical')
                 error('Incorrect value for property ''LargeMatrix'' (type ''help PlaceField_DB'' for details).');
             end
             
@@ -412,7 +412,7 @@ if plotpoisson
     figure ('units', 'normalized','outerposition', [0 1 0.6 0.6])
     
     [A,B,C,D,E,G,F,H,I,J,map2,mapS2,stats2,px2,py2,FR2,sizeFinal2,PrField2,C2,ScField2, Ts]=...
-        PlaceFieldPoisson(tsa, XS, YS, 'smoothing', smo, 'size', sizeMap, 'plotresults', 0);
+        PlaceFieldPoisson(tsa, XS, YS, 'LargeMatrix', LMatrix, 'smoothing', smo, 'size', sizeMap, 'plotresults', 0);
     
     
     subplot(221)
