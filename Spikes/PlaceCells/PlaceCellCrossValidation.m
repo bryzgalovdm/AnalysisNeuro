@@ -1,4 +1,4 @@
-function [Lfinal,LfSpk] = PlaceCellCrossValidation(Dir, cellnum, varargin)
+function [Lfinal,LfSpk] = PlaceCellCrossValidation(ClusterTSD, Xtsd, Ytsd, varargin)
 
 %%% PlaceCellCrossValidation
 %
@@ -60,31 +60,28 @@ catch
 end
 
 
-%% Get data
-load([Dir 'SpikeData.mat'], 'S');
-load([Dir 'behavResources.mat'], 'SessionEpoch', 'CleanAlignedXtsd', 'CleanAlignedYtsd');
-
 %% Treat the data
 
 % Remove nans from position vars
 % X
-tempdatX = Data(CleanAlignedXtsd);
-temptimeX = Range(CleanAlignedXtsd);
+tempdatX = Data(Xtsd);
+temptimeX = Range(Xtsd);
 temptimeX(isnan(tempdatX)) = [];
 tempdatX(isnan(tempdatX)) = [];
-CleanAlignedXtsd = tsd(temptimeX, tempdatX);
+CleanXtsd = tsd(temptimeX, tempdatX);
 % Y
-tempdatY = Data(CleanAlignedYtsd);
-temptimeY = Range(CleanAlignedYtsd);
+tempdatY = Data(Ytsd);
+temptimeY = Range(Ytsd);
 temptimeY(isnan(tempdatY)) = [];
 tempdatY(isnan(tempdatY)) = [];
-CleanAlignedYtsd = tsd(temptimeY, tempdatY);
+CleanYtsd = tsd(temptimeY, tempdatY);
 
 % Get time
-Ts = End(SessionEpoch.Hab, 's') - Start(SessionEpoch.Hab, 's'); %%% in s
-Td = End(SessionEpoch.Hab) - Start(SessionEpoch.Hab); %%% in tsd
-time = Range(Restrict(CleanAlignedXtsd, SessionEpoch.Hab)); %%% in tsd
+time = Range(Xtsd); %%% in tsd
+Ts = (time(end) - time(1))/1e4; %%% in s
+Td = time(end) - time(1); %%% in tsd
 ddTs = Ts/length(time);
+EpochFull = intervalSet(time(1),time(end));
 
 
 % We want to do a 10-fold cross-validation
@@ -93,7 +90,7 @@ dT = Td/10;
 dTs = Ts/10;
 
 % Spike array
-spk = Restrict(S{cellnum}, SessionEpoch.Hab);
+spk = ClusterTSD;
 
 %Likelihood function is divided in 10 values
 Lf = zeros(10,1);
@@ -114,17 +111,17 @@ for ep=1:10
     testIS = intervalSet(tStart, tEnd);
     
     % Defining training set (everything except test set)
-    xTraining = Restrict(CleanAlignedXtsd, (SessionEpoch.Hab-testIS));
-    yTraining = Restrict(CleanAlignedYtsd, (SessionEpoch.Hab-testIS));
-    spkTraining = Restrict(spk, (SessionEpoch.Hab-testIS));
+    xTraining = Restrict(CleanXtsd, (EpochFull-testIS));
+    yTraining = Restrict(CleanYtsd, (EpochFull-testIS));
+    spkTraining = Restrict(spk, (EpochFull-testIS));
     
     % Estimating HD tuning curve on the training set
     [map, ~, ~, ~, ~, ~, xB, yB]=PlaceField_DB(spkTraining,xTraining, yTraining,...
         'SizeMap', sizeMap, 'Smoothing', smo, 'LargeMatrix', false, 'PlotResults', 0, 'PlotPoisson', 0);
     
     % Defining test set
-    xTest = Restrict(CleanAlignedXtsd, testIS);
-    yTest = Restrict(CleanAlignedYtsd, testIS);
+    xTest = Restrict(CleanXtsd, testIS);
+    yTest = Restrict(CleanYtsd, testIS);
     spkTest = Restrict(spk, testIS);
     
     % index of angBins corresponding to each angle during the test
