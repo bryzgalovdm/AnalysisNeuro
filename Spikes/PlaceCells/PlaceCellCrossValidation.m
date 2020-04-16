@@ -101,6 +101,9 @@ N = length(Data(spk));
 % Average firing rate
 fr = N/Ts;
 
+% Spatial bins with <exlThresh> < 0.1 become 0 Hz firing rate in the log-term 
+exlThresh = 0.01; % Hz
+
 %% Let's look at the information of a cell
 
 for ep=1:10
@@ -115,7 +118,7 @@ for ep=1:10
     yTraining = Restrict(CleanYtsd, (EpochFull-testIS));
     spkTraining = Restrict(spk, (EpochFull-testIS));
     
-    % Estimating HD tuning curve on the training set
+    % Estimating place cell rate map on the training set
     [map, ~, ~, ~, ~, ~, xB, yB]=PlaceField_DB(spkTraining,xTraining, yTraining,...
         'SizeMap', sizeMap, 'Smoothing', smo, 'LargeMatrix', false, 'PlotResults', 0, 'PlotPoisson', 0);
     
@@ -124,7 +127,7 @@ for ep=1:10
     yTest = Restrict(CleanYtsd, testIS);
     spkTest = Restrict(spk, testIS);
     
-    % index of angBins corresponding to each angle during the test
+    % index of X and Y coordinates corresponding to each spatial bin during the test
     normX = (Data(xTest) - min(Data(xTest)))/(max(Data(xTest)) - min(Data(xTest)));
     normY = (Data(yTest) - min(Data(yTest)))/(max(Data(yTest)) - min(Data(yTest)));
     xx = floor((length(xB)-1)*normX)+1;
@@ -135,15 +138,11 @@ for ep=1:10
     
     % Evaluation of the intensity function at spike times
     pX = Restrict(xTest,spkTest,'align','closest');
-    pY = Restrict(yTest,spkTest,'align','closest');
     
     dpX = Range(pX);
-    dpY = Range(pY);
     idxX = zeros(length(pX),1);
-    idxY = zeros(length(pY),1);
     for i=1:length(pX)
         idxX(i) = find(Range(xTest)==dpX(i));
-        idxY(i) = find(Range(yTest)==dpY(i));
     end
     
     % Likelihood function
@@ -152,9 +151,9 @@ for ep=1:10
     
     % Log terms for the intensity functions
     logTermF = log2(intensityFct(idxX));
-    logTermF(intensityFct(idxX)==0) = 0;
+    logTermF(intensityFct(idxX)<exlThresh) = 0;
     
-    % First term is very small; intensityFct is always <<< firingrate_flat. Why????
+    % First term is very small; intensityFct is always <<< firingrate_flat - remark from 10/04/20
     Lf(ep) = - sum(intensityFct - firingRate_flat)*ddTs + sum(logTermF - log2(firingRate_flat));
     
 end
