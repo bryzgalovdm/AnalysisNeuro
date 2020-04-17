@@ -101,8 +101,8 @@ N = length(Data(spk));
 % Average firing rate
 fr = N/Ts;
 
-% Spatial bins with <exlThresh> < 0.1 become 0 Hz firing rate in the log-term 
-exlThresh = 0.01; % Hz
+% Spatial bins with FR <= <exlThresh> become 0 Hz firing rate in the log-term 
+exlThresh = 1/dTs; % Hz
 
 %% Let's look at the information of a cell
 
