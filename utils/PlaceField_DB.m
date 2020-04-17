@@ -282,6 +282,14 @@ else
     end
 end
 
+% Find firing rate
+rg=Range(XS,'s');
+if ~isempty(rg)
+    FR=length(Range(tsa))/(rg(end)-rg(1));
+else
+    FR = [];
+end
+
 % Determine the firing field (i.e. the connex area where the firing rates are > threshold*peak).
 % There are two ways to do this:
 % 1) If the location of the center was provided (see 'center' property), the firing field is
@@ -373,14 +381,6 @@ if iscell(stats.field)
         GC{j}(j,1)=C{j}(1);
         GC{j}(j,2)=C{j}(2);
     end
-end
-
-% Find firing rate
-rg=Range(XS,'s');
-if ~isempty(rg)
-    FR=length(Range(tsa))/(rg(end)-rg(1));
-else
-    FR = [];
 end
 
 %% Plotting section
