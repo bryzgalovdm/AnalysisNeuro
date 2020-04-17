@@ -377,7 +377,11 @@ end
 
 % Find firing rate
 rg=Range(XS,'s');
-FR=length(Range(tsa))/(rg(end)-rg(1));
+if ~isempty(rg)
+    FR=length(Range(tsa))/(rg(end)-rg(1));
+else
+    FR = [];
+end
 
 %% Plotting section
 
