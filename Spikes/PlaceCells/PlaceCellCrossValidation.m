@@ -31,9 +31,9 @@ for i=1:2:length(varargin)
                 error('Incorrect value for property ''SizeMap'' (type ''help PlaceCellCrossValidation'' for details).');
             end
             
-        case 'Verbose'
+        case 'verbose'
             verbose = varargin{i+1};
-            if ~isa(sizeMap,'logical')
+            if ~isa(verbose,'logical')
                 error('Incorrect value for property ''Verbose'' (type ''help PlaceCellCrossValidation'' for details).');
             end
     end
