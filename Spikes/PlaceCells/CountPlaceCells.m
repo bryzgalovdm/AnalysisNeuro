@@ -4,6 +4,8 @@ function numPCs = CountPlaceCells(Dir)
 % 
 % Script that quickly counts all recorded place cells
 % gets them from SpikeData.PlaceCells field
+% 
+% See also FindAllPlaceFields
 
 %% Count
 numPCs = 0;
@@ -17,5 +19,9 @@ for j=1:length(Dir.path)
         clear PlaceCells
     end
 end
+
+disp('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+fprintf('%2i place cells in the analysis\n', numPCs);
+disp('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
 end
