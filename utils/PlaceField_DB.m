@@ -19,6 +19,7 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 
 %  OUTPUT
 %
+%     epoch          epoch to restrict your data to (you should use this optional argument if you want to restrict)
 %     map.rate       average firing rate map (in Hz)
 %     map.time       occupancy map (in s)
 %     map.count      firing count map
@@ -72,12 +73,17 @@ for i=1:2:length(varargin)
     
     switch(lower(varargin{i}))
         
+        
+        case 'epoch'
+            epoch = varargin{i+1};
+            if ~isa(epoch,'intervalSet')
+                error('Incorrect value for property ''Epoch'' (type ''help PlaceField'' for details).');
+            end
         case 'smoothing'
             smo = varargin{i+1};
             if ~isa(smo,'numeric')
                 error('Incorrect value for property ''Smoothing'' (type ''help PlaceField'' for details).');
-            end
-            
+            end     
         case 'video'
             freqVideo = varargin{i+1};
             if ~isa(freqVideo,'numeric')
@@ -118,6 +124,12 @@ for i=1:2:length(varargin)
 end
 
 % Default values of optional arguments
+
+try
+    epoch;
+catch
+    epoch = [];
+end
 
 try
     smo;
@@ -161,6 +173,16 @@ catch
     plotpoisson=1;
 end
 
+
+%% Restrict to epoch if it exist
+if ~isempty(epoch)
+    tsa = Restrict(tsa, epoch);
+    XS = Restrict(XS, epoch);
+    YS = Restrict(YS, epoch);
+else
+    warning('If you restrict data to non-continous epochs (epochs with gaps) without using <Epoch> optional argument, you may obtain inaccurate results');
+end
+    
 
 %% Create 2D histogram of occupancy
 
@@ -283,11 +305,16 @@ else
 end
 
 % Find firing rate
-rg=Range(XS,'s');
-if ~isempty(rg)
-    FR=length(Range(tsa))/(rg(end)-rg(1));
+if isempty(epoch)
+    rg=Range(XS,'s');
+    if ~isempty(rg)
+        FR=length(Range(tsa))/(rg(end)-rg(1));
+    else
+        FR = 0;
+    end
 else
-    FR = [];
+    lEpoch = sum(End(epoch, 's') - Start(epoch, 's'));
+    FR=length(Range(tsa))/lEpoch;
 end
 
 % Determine the firing field (i.e. the connex area where the firing rates are > threshold*peak).
@@ -415,7 +442,7 @@ if plotpoisson
     
     figure ('units', 'normalized','outerposition', [0 1 0.6 0.6])
     
-    [A,B,C,D,E,G,F,H,I,J,map2,mapS2,stats2,px2,py2,FR2,sizeFinal2,PrField2,C2,ScField2, Ts]=...
+    [~,~,~,~,~,~,~,~,~,~,map2,~,stats2,px2,py2,~,~,~,~,~, ~]=...
         PlaceFieldPoisson(tsa, XS, YS, 'LargeMatrix', LMatrix, 'smoothing', smo, 'size', sizeMap, 'plotresults', 0);
     
     
@@ -430,8 +457,7 @@ if plotpoisson
     xlim([minx-difx*0.05 maxx+difx*0.05]);
     miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
     ylim([miny-dify*0.05 maxy+dify*0.05])
-    rg=Range(XS,'s');
-    title(['Firing rate : ',num2str(length(Range(tsa))/(rg(end)-rg(1))),' Hz'])
+    title(['Firing rate : ',num2str(FR),' Hz'])
     subplot(223)
     imagesc(map2.rate), axis xy, title('Firing map Poisson'), colorbar
     colormap jet
