@@ -10,7 +10,7 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %     
 %     smoothing      spatial smooting factor (default - 3)
 %     freqVideo      sampling rate of the video (default - 15)
-%     threshold      to define place field which is area around peak where FR >= threshold*peak (default - 0.7)
+%     threshold      to define place field which is area around peak where FR >= threshold*peak (default - 0.5)
 %     sizemap           size of the map (it will be size * size) in pixels
 %     LargeMatrix    if 1 edges will be added to maps (default - 1 or True)
 %     PlotResults    plot the main figure (occupancy, spike counts, rate maps + movements) (default - 1)
@@ -134,7 +134,7 @@ end
 try
     threshold;
 catch
-    threshold = 0.7;
+    threshold = 0.5;
 end
 
 try
