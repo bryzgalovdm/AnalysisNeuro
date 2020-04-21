@@ -2,6 +2,25 @@ function [Lfinal,LfSpk] = PlaceCellCrossValidation(ClusterTSD, Xtsd, Ytsd, varar
 
 %%% PlaceCellCrossValidation
 %
+% INPUT
+% 
+%     ClusterTSD            spike times in tsd
+%     Xtsd                  X position in tsd
+%     Ytsd                  Y position is tsd
+%     
+%     optional arguments:
+%     
+%     Smoothing             spatial smooting factor (default - 0)
+%     SizeMap               size of the map (it will be size * size) in pixels
+%     Verbose               verbose result (default - true)
+
+
+%  OUTPUT
+%
+%     Lfinal                Predictability in bits/sec
+%     LfSpk                 Predictability in bits/spike
+%     
+% 
 % Estimating place cell spatial information by a cross-validating procedure
 % Following Harris et al., Nature, 2003
 %
@@ -44,7 +63,7 @@ end
 try
     smo;
 catch
-    smo=1;
+    smo=0;
 end
 
 try
@@ -119,8 +138,8 @@ for ep=1:10
     spkTraining = Restrict(spk, (EpochFull-testIS));
     
     % Estimating place cell rate map on the training set
-    [map, ~, ~, ~, ~, ~, xB, yB]=PlaceField_DB(spkTraining,xTraining, yTraining,...
-        'SizeMap', sizeMap, 'Smoothing', smo, 'LargeMatrix', false, 'PlotResults', 0, 'PlotPoisson', 0);
+    [map, mapNS, ~, ~, ~, ~, xB, yB]=PlaceField_DB(spkTraining,xTraining, yTraining,...
+        'SizeMap', sizeMap, 'LargeMatrix', false, 'PlotResults', 0, 'PlotPoisson', 0);
     
     % Defining test set
     xTest = Restrict(CleanXtsd, testIS);
@@ -153,7 +172,7 @@ for ep=1:10
     logTermF = log2(intensityFct(idxX));
     logTermF(intensityFct(idxX)<exlThresh) = 0;
     
-    % First term is very small; intensityFct is always <<< firingrate_flat - remark from 10/04/20
+    % Do a final calculation
     Lf(ep) = - sum(intensityFct - firingRate_flat)*ddTs + sum(logTermF - log2(firingRate_flat));
     
 end
