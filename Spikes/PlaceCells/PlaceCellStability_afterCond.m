@@ -7,7 +7,7 @@
 % 
 % It plots out only cells with within-session stability <= 0.5
 % 
-% Last touched on 07/04/2020
+% Last touched on 23/04/2020
 % 
 % By Dima Bryzgalov, MOBS team, Paris
 % 
@@ -93,12 +93,10 @@ for j=1:length(Dir.path)
                 idxSZ(cnt) = true;
             end
             try % this try-catch syntax avoids spitting out an error in a situation when there are too less spikes for analysis on one half of the recording
-                map1 = PlaceField_DB(Restrict(spikes.S{spikes.PlaceCells.idx(i)},MovingHab1Half),... % 1st half
-                    Restrict(beh.CleanAlignedXtsd, MovingHab1Half),...
-                    Restrict(beh.CleanAlignedYtsd, MovingHab1Half), 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
-                map2 = PlaceField_DB(Restrict(spikes.S{spikes.PlaceCells.idx(i)},MovingHab2Half),... % 2nd half
-                    Restrict(beh.CleanAlignedXtsd, MovingHab2Half),...
-                    Restrict(beh.CleanAlignedYtsd, MovingHab2Half), 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
+                map1=PlaceField_DB(spikes.S{spikes.PlaceCells.idx(i)},beh.CleanAlignedXtsd, beh.CleanAlignedYtsd,... % 1st half
+                    'Epoch', MovingHab1Half, 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
+                map2=PlaceField_DB(spikes.S{spikes.PlaceCells.idx(i)},beh.CleanAlignedXtsd, beh.CleanAlignedYtsd,... % 2nd half
+                    'Epoch', MovingHab2Half, 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
             catch
                 map1 = [];
                 map2 = [];
@@ -113,12 +111,10 @@ for j=1:length(Dir.path)
         
         % Inter-cell correlation
             try % this try-catch syntax avoids spitting out an error in a situation when there are too less spikes for analysis on one half of the recording
-                map1 = PlaceField_DB(Restrict(spikes.S{spikes.PlaceCells.idx(i)},UMazeMovingEpoch),... % Exploration before aversive experience
-                    Restrict(beh.CleanAlignedXtsd, UMazeMovingEpoch),...
-                    Restrict(beh.CleanAlignedYtsd, UMazeMovingEpoch), 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
-                map2 = PlaceField_DB(Restrict(spikes.S{spikes.PlaceCells.idx(i)},AfterConditioningMovingEpoch),... % Exploration after aversive experience
-                    Restrict(beh.CleanAlignedXtsd, AfterConditioningMovingEpoch),...
-                    Restrict(beh.CleanAlignedYtsd, AfterConditioningMovingEpoch), 'smoothing', 2.5, 'size', 50, 'plotresults', 0, 'plotpoisson', 0);
+                map1=PlaceField_DB(spikes.S{spikes.PlaceCells.idx(i)},beh.CleanAlignedXtsd, beh.CleanAlignedYtsd,... % Exploration before aversive experience
+                    'Epoch', UMazeMovingEpoch, 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
+                map2=PlaceField_DB(spikes.S{spikes.PlaceCells.idx(i)},beh.CleanAlignedXtsd, beh.CleanAlignedYtsd,... % Exploration after aversive experience
+                    'Epoch', AfterConditioningMovingEpoch, 'smoothing', 2.5, 'size', 50, 'plotresults',0, 'plotpoisson', 0);
             catch
                 map1 = [];
                 map2 = [];
@@ -242,7 +238,7 @@ fb = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.7]);
 [p_s,h_s, her_s] = PlotErrorBarN_DB(StabilityAcrossExperiment_clean, 'barcolors', [0 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints',1);
 h_s.FaceColor = 'flat'; 
 h_s.CData(2,:) = [1 1 1]; % It does not work in 2016b
-set(gca,'Xtick',[1:2],'XtickLabel',{'PreVsPost', 'WithinSession'});
+set(gca,'Xtick',[1:2],'XtickLabel',{'WithinSession', 'PreVsPost'});
 set(gca, 'FontSize', 14, 'FontWeight',  'bold');
 set(gca, 'LineWidth', 3);
 set(h_s, 'LineWidth', 3);
