@@ -58,13 +58,14 @@ sav = true;
 overwrite = true;
 
 % Do you want to save a figure?
-savfig = true;
+savfig = false;
 
 % Paths and names to save
 pathfig = '/MOBS_workingON/Dima/Ongoing_results/PlaceField_Final/'; % without dropbox path
 
 % Mice in the analysis
-nmouse = [797 798 828 861 882 905 906 911 912 977 994];
+% nmouse = [797 798 828 861 882 905 906 911 912 977 994];
+nmouse = 994;
 % nmouse = [906 912]; % Had PreMazes
 % nmouse = [905 911]; % Did not have PreMazes
 
@@ -121,7 +122,12 @@ for i=1:length(Dir.path)
     
     % Overwrite
     if ~overwrite
-        system(['cp ' Dir.path{i}{1} 'SpikeData.mat ' Dir.path{i}{1} 'SpikeData_old.mat']);
+        if isunix
+            system(['cp ' Dir.path{i}{1} 'SpikeData.mat ' Dir.path{i}{1} 'SpikeData_old.mat']);
+        end
+        if ispc
+            system(['copy ' Dir.path{i}{1} 'SpikeData.mat ' Dir.path{i}{1} 'SpikeData_old.mat']);
+        end
     end
     
     spikes{i} = load([Dir.path{i}{1} '/SpikeData.mat']);
