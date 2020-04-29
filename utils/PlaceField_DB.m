@@ -1,13 +1,13 @@
 function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, varargin)
 
 % INPUT
-% 
+%
 %     tsa            spike times in tsd
 %     XS             X position in tsd
 %     YS             Y position is tsd
-%     
+%
 %     optional arguments:
-%     
+%
 %     smoothing      spatial smooting factor (default - 3)
 %     freqVideo      sampling rate of the video (default - 15)
 %     threshold      to define place field which is area around peak where FR >= threshold*peak (default - 0.5)
@@ -63,7 +63,7 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %   end
 % end
 %
-% 
+%
 % Corrected by Dima Bryzgalov on the basis of common code from MOBS team, Paris, France
 % 10/04/2020
 
@@ -83,7 +83,7 @@ for i=1:2:length(varargin)
             smo = varargin{i+1};
             if ~isa(smo,'numeric')
                 error('Incorrect value for property ''Smoothing'' (type ''help PlaceField'' for details).');
-            end     
+            end
         case 'video'
             freqVideo = varargin{i+1};
             if ~isa(freqVideo,'numeric')
@@ -152,13 +152,13 @@ end
 try
     sizeMap;
 catch
-    sizeMap=50;   
+    sizeMap=50;
 end
 
 try
     LMatrix;
 catch
-    LMatrix=true;   
+    LMatrix=true;
 end
 
 try
@@ -182,300 +182,325 @@ if ~isempty(epoch)
 else
     warning('If you restrict data to non-continous epochs (epochs with gaps) without using <Epoch> optional argument, you may obtain inaccurate results');
 end
-    
 
-%% Create 2D histogram of occupancy
+%% Check if the input variables are not empty
+flagstop = false;
+
+if isempty(Data(XS)) || isempty(Data(YS))
+    flagstop = true;
+    warning('You trajectories are empty. All output is empty too then');
+end
 
 px =Data(Restrict(XS,tsa,'align','closest'));
 py =Data(Restrict(YS,tsa,'align','closest'));
 
-[occH, xB, yB] = hist2d(Data(XS), Data(YS), sizeMap, sizeMap);
-
-% Restrict movement arrays by spike times
-pX = Restrict(XS,tsa,'align','closest');
-pY = Restrict(YS, tsa,'align','closest');
-
-%% Create 2D histogram of spike counts
-pfH = hist2d(Data(pX), Data(pY), xB, yB);
-
-%% Create rate maps
-pf = freqVideo * pfH./occH;
-
-% Add edges to the map (sizeMap/8 pixels on each side)
-if LMatrix
-    largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
-    largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = pf;
-    % Add spatial bins
-    firstbinX = min(Data(XS)) - (sizeMap/8)*(xB(2)-xB(1));
-    lastbinX = max(Data(XS)) + (sizeMap/8)*(xB(2)-xB(1));
-    xB = [linspace(firstbinX, min(Data(XS)), sizeMap/8) xB linspace(max(Data(XS)), lastbinX, sizeMap/8)];
-    firstbinY = min(Data(YS)) - (sizeMap/8)*(yB(2)-yB(1));
-    lastbinY = max(Data(YS)) + (sizeMap/8)*(yB(2)-yB(1));
-    yB = [linspace(firstbinY, min(Data(YS)), sizeMap/8) yB linspace(max(Data(YS)), lastbinY, sizeMap/8)];
-    pf = largerMatrix;
+if isempty(px) || isempty(py)
+    flagstop = true;
+    warning('You have zero spike in your data. Output will be empty');
 end
 
-% Clean rate map from nans
-warning on
-pf(isnan(pf))=0;
-sg = sort(pf(~isnan(pf(:))));
-th = sg(end-5);
-pf(pf>th) = 0;
-
-mapNS.rate = pf';
-
-% Smooth the map
-pf=SmoothDec(pf,[smo,smo]);
-
-pf=pf';
-map.rate=pf;
-
-%% Add edges to occupancy map
-if LMatrix
-    largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
-    largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = occH';
-    largerMatrix=SmoothDec(largerMatrix,[smo,smo]);
-    mapNS.time = largerMatrix/freqVideo;
-    map.time=largerMatrix/freqVideo;
+if flagstop
+    
+    map = [];
+    mapNS = [];
+    stats = [];
+    px = [];
+    py = [];
+    FR = [];
+    xB = [];
+    yB = [];
+    
 else
-    mapNS.time = occH';
-    occH=SmoothDec(occH'/freqVideo,[smo,smo]);
-    map.time=occH;
-end
-
-%% Add edges to spike count map
-if LMatrix
-    largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
-    largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = pfH';
-    map.count = largerMatrix;
-    largerMatrix=SmoothDec(largerMatrix,[smo,smo]);
-    map.count=largerMatrix;
-else
-    map.count = pfH';
-    pfH=SmoothDec(pfH',[smo,smo]);
-    map.count=pfH;
-end
-
-%% Update size of the maps
-if LMatrix
-    nBins =sizeMap+floor(sizeMap/4);
-else
-    nBins =sizeMap;
-end
-
-
-nBinsX = nBins(1);
-if length(nBins) == 1
-    nBinsY = nBinsX;
-    nBins(2) = nBins;
-else
-    nBinsY = nBins(2);
-end
-
-%% Create statistics structure
-
-stats.x = [];
-stats.y = [];
-stats.field = [];
-stats.size = [];
-stats.peak = [];
-stats.mean = [];
-stats.fieldX = [];
-stats.fieldY = [];
-stats.spatialInfo=[];
-stats.sparsity=[];
-stats.specificity = [];
-
-% Compute the spatial specificity of the firing map, based on the formula proposed
-% by Skaggs et al. (1993).
-
-T = sum(sum(map.time));
-if T == 0
-    stats.specificity = 0;
-else
-    occupancy = map.time/(T+eps);
-    meanFiringRate = sum(sum(map.count))/(sum(sum(map.time)+eps));
-    if meanFiringRate == 0
+    %% Create 2D histogram of occupancy
+    
+    [occH, xB, yB] = hist2d(Data(XS), Data(YS), sizeMap, sizeMap);
+    
+    % Restrict movement arrays by spike times
+    pX = Restrict(XS,tsa,'align','closest');
+    pY = Restrict(YS, tsa,'align','closest');
+    
+    %% Create 2D histogram of spike counts
+    pfH = hist2d(Data(pX), Data(pY), xB, yB);
+    
+    %% Create rate maps
+    pf = freqVideo * pfH./occH;
+    
+    % Add edges to the map (sizeMap/8 pixels on each side)
+    if LMatrix
+        largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
+        largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = pf;
+        % Add spatial bins
+        firstbinX = min(Data(XS)) - (sizeMap/8)*(xB(2)-xB(1));
+        lastbinX = max(Data(XS)) + (sizeMap/8)*(xB(2)-xB(1));
+        xB = [linspace(firstbinX, min(Data(XS)), sizeMap/8) xB linspace(max(Data(XS)), lastbinX, sizeMap/8)];
+        firstbinY = min(Data(YS)) - (sizeMap/8)*(yB(2)-yB(1));
+        lastbinY = max(Data(YS)) + (sizeMap/8)*(yB(2)-yB(1));
+        yB = [linspace(firstbinY, min(Data(YS)), sizeMap/8) yB linspace(max(Data(YS)), lastbinY, sizeMap/8)];
+        pf = largerMatrix;
+    end
+    
+    % Clean rate map from nans
+    warning on
+    pf(isnan(pf))=0;
+    sg = sort(pf(~isnan(pf(:))));
+    th = sg(end-5);
+    pf(pf>th) = 0;
+    
+    mapNS.rate = pf';
+    
+    % Smooth the map
+    pf=SmoothDec(pf,[smo,smo]);
+    
+    pf=pf';
+    map.rate=pf;
+    
+    %% Add edges to occupancy map
+    if LMatrix
+        largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
+        largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = occH';
+        largerMatrix=SmoothDec(largerMatrix,[smo,smo]);
+        mapNS.time = largerMatrix/freqVideo;
+        map.time=largerMatrix/freqVideo;
+    else
+        mapNS.time = occH';
+        occH=SmoothDec(occH'/freqVideo,[smo,smo]);
+        map.time=occH;
+    end
+    
+    %% Add edges to spike count map
+    if LMatrix
+        largerMatrix = zeros(sizeMap+floor(sizeMap/4),sizeMap+floor(sizeMap/4));
+        largerMatrix(1+floor(sizeMap/8):sizeMap+floor(sizeMap/8),1+floor(sizeMap/8):sizeMap+floor(sizeMap/8)) = pfH';
+        map.count = largerMatrix;
+        largerMatrix=SmoothDec(largerMatrix,[smo,smo]);
+        map.count=largerMatrix;
+    else
+        map.count = pfH';
+        pfH=SmoothDec(pfH',[smo,smo]);
+        map.count=pfH;
+    end
+    
+    %% Update size of the maps
+    if LMatrix
+        nBins =sizeMap+floor(sizeMap/4);
+    else
+        nBins =sizeMap;
+    end
+    
+    
+    nBinsX = nBins(1);
+    if length(nBins) == 1
+        nBinsY = nBinsX;
+        nBins(2) = nBins;
+    else
+        nBinsY = nBins(2);
+    end
+    
+    %% Create statistics structure
+    
+    stats.x = [];
+    stats.y = [];
+    stats.field = [];
+    stats.size = [];
+    stats.peak = [];
+    stats.mean = [];
+    stats.fieldX = [];
+    stats.fieldY = [];
+    stats.spatialInfo=[];
+    stats.sparsity=[];
+    stats.specificity = [];
+    
+    % Compute the spatial specificity of the firing map, based on the formula proposed
+    % by Skaggs et al. (1993).
+    
+    T = sum(sum(map.time));
+    if T == 0
         stats.specificity = 0;
     else
-        logArg = map.count/meanFiringRate;
-        logArg(logArg <= 1) = 1;
-        stats.specificity = sum(sum(map.count.*log2(logArg).*occupancy))/meanFiringRate;
-    end
-end
-
-% Find firing rate
-if isempty(epoch)
-    rg=Range(XS,'s');
-    if ~isempty(rg)
-        FR=length(Range(tsa))/(rg(end)-rg(1));
-    else
-        FR = 0;
-    end
-else
-    lEpoch = sum(End(epoch, 's') - Start(epoch, 's'));
-    FR=length(Range(tsa))/lEpoch;
-end
-
-% Determine the firing field (i.e. the connex area where the firing rates are > threshold*peak).
-% There are two ways to do this:
-% 1) If the location of the center was provided (see 'center' property), the firing field is
-%    found around the center.
-% 2) Otherwise, the firing field is assumed to be around the bin with maximal firing rate
-%    (when there are two fields, the one with the highest firing rate is selected unless the other
-%    one is >20% bigger).
-
-if max(max(map.rate)) == 0
-    stats.field = false(size(map.rate));
-    return;
-end
-
-% First clean the map from very small regions of elevated firing rates
-map.rate = CleanMap(nBinsX,nBinsY,threshold,map.rate,20);
-
-% In the absence of any information regarding the location of the center,
-% find two candidate firing fields
-rate = map.rate;
-for i = 1:2
-    % Find firing field and compute all parameters
-    peak(i) = max(max(rate));
-    peakLocation = FindPeakLocation(rate);
-    x(i) = peakLocation(1);
-    y(i) = peakLocation(2);
-    field{i} = FindFiringField(x(i),y(i),nBinsX,nBinsY,threshold*peak,rate);
-    fieldSize(i) = sum(sum(field{i}));
-    % Remove this firing field from the rate map for next iteration
-    rate(logical(field{i})) = 0;
-end
-% Choose between the two candidate fields
-if fieldSize(2) == 0
-    winner = 1;
-else
-    sizeRelativeDifference = fieldSize(2)/fieldSize(1);
-    if sizeRelativeDifference > 3 % Used to be 0.2
-        winner = 2; % Choose firing field #2 (see below)
-    elseif sizeRelativeDifference < 0.33 % used to be else
-        winner = 1; % Choose firing field #1 (see below)
-    else
-        winner = [1 2];
-    end
-end
-
-
-% Set stats
-if length(winner) == 1
-    stats.x = x(winner);
-    stats.y = y(winner);
-    stats.field = logical(field{winner});
-    stats.size = fieldSize(winner);
-    stats.peak = peak(winner);
-    stats.mean = mean(mean(map.rate(stats.field)));
-    i = find(max(stats.field,[],1));
-    if ~isempty(i)
-        stats.fieldX = [i(1) i(end)];
-    end
-    i = find(max(stats.field,[],2));
-    if ~isempty(i)
-        stats.fieldY = [i(1) i(end)];
-    end
-else
-    for i=1:2
-        stats.x(i) = x(winner(i));
-        stats.y(i) = y(winner(i));
-        stats.field{i}=field{i};
-        stats.size(i) = fieldSize(winner(i));
-        stats.peak(i) = peak(winner(i));
-        stats.mean(i) = mean(mean(map.rate(logical(stats.field{i}))));
-        j = find(max(stats.field{i},[],1));
-        if ~isempty(j)
-            stats.fieldX{i} = [j(1) j(end)];
-        end
-        j = find(max(stats.field{i},[],2));
-        if ~isempty(j)
-            stats.fieldY{i} = [j(1) j(end)];
+        occupancy = map.time/(T+eps);
+        meanFiringRate = sum(sum(map.count))/(sum(sum(map.time)+eps));
+        if meanFiringRate == 0
+            stats.specificity = 0;
+        else
+            logArg = map.count/meanFiringRate;
+            logArg(logArg <= 1) = 1;
+            stats.specificity = sum(sum(map.count.*log2(logArg).*occupancy))/meanFiringRate;
         end
     end
-end
-
-% Some final parameters
-stat=SpatialInfo(map);
-stats.spatialInfo=stat.info;
-stats.sparsity=stat.sparsity;
-
-if iscell(stats.field)
-    for j=1:length(stats.field)
-        C{j}=GravityCenter(stats.field{j}.*map.rate);
-        GC{j}(j,1)=C{j}(1);
-        GC{j}(j,2)=C{j}(2);
-    end
-end
-
-%% Plotting section
-
-if plotresults
     
-    figure('Color',[1 1 1])
-    subplot(3,2,1), imagesc(map.time), axis xy, title('Occupation map')
-    subplot(3,2,2), imagesc(map.count), axis xy, title('Spike map')
-    subplot(3,2,3), imagesc(map.rate), axis xy, title('Firing map'), colorbar
-    
-    subplot(3,2,4) , plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
-    hold on, plot(px,py,'r.')
-    minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
-    xlim([minx-difx*0.05 maxx+difx*0.05]);
-    miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
-    ylim([miny-dify*0.05 maxy+dify*0.05])
-    title(['Firing rate : ',num2str(FR),' Hz'])
-    
-    subplot(3,2,5:6), hold on,
-    plot(Range(XS,'s'),Data(XS))
-    plot(Range(YS,'s'),Data(YS),'g')
-    if maxy > maxx
-        plot(Range(tsa,'s'),1.5*maxy*ones(length(Range(tsa,'s')),1),'r.')
+    % Find firing rate
+    if isempty(epoch)
+        rg=Range(XS,'s');
+        if ~isempty(rg)
+            FR=length(Range(tsa))/(rg(end)-rg(1));
+        else
+            FR = 0;
+        end
     else
-        plot(Range(tsa,'s'),1.3*maxx*ones(length(Range(tsa,'s')),1),'r.')
+        lEpoch = sum(End(epoch, 's') - Start(epoch, 's'));
+        FR=length(Range(tsa))/lEpoch;
+    end
+    
+    % Determine the firing field (i.e. the connex area where the firing rates are > threshold*peak).
+    % There are two ways to do this:
+    % 1) If the location of the center was provided (see 'center' property), the firing field is
+    %    found around the center.
+    % 2) Otherwise, the firing field is assumed to be around the bin with maximal firing rate
+    %    (when there are two fields, the one with the highest firing rate is selected unless the other
+    %    one is >20% bigger).
+    
+    if max(max(map.rate)) == 0
+        stats.field = false(size(map.rate));
+        return;
+    end
+    
+    % First clean the map from very small regions of elevated firing rates
+    map.rate = CleanMap(nBinsX,nBinsY,threshold,map.rate,20);
+    
+    % In the absence of any information regarding the location of the center,
+    % find two candidate firing fields
+    rate = map.rate;
+    for i = 1:2
+        % Find firing field and compute all parameters
+        peak(i) = max(max(rate));
+        peakLocation = FindPeakLocation(rate);
+        x(i) = peakLocation(1);
+        y(i) = peakLocation(2);
+        field{i} = FindFiringField(x(i),y(i),nBinsX,nBinsY,threshold*peak,rate);
+        fieldSize(i) = sum(sum(field{i}));
+        % Remove this firing field from the rate map for next iteration
+        rate(logical(field{i})) = 0;
+    end
+    % Choose between the two candidate fields
+    if fieldSize(2) == 0
+        winner = 1;
+    else
+        sizeRelativeDifference = fieldSize(2)/fieldSize(1);
+        if sizeRelativeDifference > 3 % Used to be 0.2
+            winner = 2; % Choose firing field #2 (see below)
+        elseif sizeRelativeDifference < 0.33 % used to be else
+            winner = 1; % Choose firing field #1 (see below)
+        else
+            winner = [1 2];
+        end
+    end
+    
+    
+    % Set stats
+    if length(winner) == 1
+        stats.x = x(winner);
+        stats.y = y(winner);
+        stats.field = logical(field{winner});
+        stats.size = fieldSize(winner);
+        stats.peak = peak(winner);
+        stats.mean = mean(mean(map.rate(stats.field)));
+        i = find(max(stats.field,[],1));
+        if ~isempty(i)
+            stats.fieldX = [i(1) i(end)];
+        end
+        i = find(max(stats.field,[],2));
+        if ~isempty(i)
+            stats.fieldY = [i(1) i(end)];
+        end
+    else
+        for i=1:2
+            stats.x(i) = x(winner(i));
+            stats.y(i) = y(winner(i));
+            stats.field{i}=field{i};
+            stats.size(i) = fieldSize(winner(i));
+            stats.peak(i) = peak(winner(i));
+            stats.mean(i) = mean(mean(map.rate(logical(stats.field{i}))));
+            j = find(max(stats.field{i},[],1));
+            if ~isempty(j)
+                stats.fieldX{i} = [j(1) j(end)];
+            end
+            j = find(max(stats.field{i},[],2));
+            if ~isempty(j)
+                stats.fieldY{i} = [j(1) j(end)];
+            end
+        end
+    end
+    
+    % Some final parameters
+    stat=SpatialInfo(map);
+    stats.spatialInfo=stat.info;
+    stats.sparsity=stat.sparsity;
+    
+    if iscell(stats.field)
+        for j=1:length(stats.field)
+            C{j}=GravityCenter(stats.field{j}.*map.rate);
+            GC{j}(j,1)=C{j}(1);
+            GC{j}(j,2)=C{j}(2);
+        end
+    end
+    
+    %% Plotting section
+    
+    if plotresults
+        
+        figure('Color',[1 1 1])
+        subplot(3,2,1), imagesc(map.time), axis xy, title('Occupation map')
+        subplot(3,2,2), imagesc(map.count), axis xy, title('Spike map')
+        subplot(3,2,3), imagesc(map.rate), axis xy, title('Firing map'), colorbar
+        
+        subplot(3,2,4) , plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
+        hold on, plot(px,py,'r.')
+        minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
+        xlim([minx-difx*0.05 maxx+difx*0.05]);
+        miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
+        ylim([miny-dify*0.05 maxy+dify*0.05])
+        title(['Firing rate : ',num2str(FR),' Hz'])
+        
+        subplot(3,2,5:6), hold on,
+        plot(Range(XS,'s'),Data(XS))
+        plot(Range(YS,'s'),Data(YS),'g')
+        if maxy > maxx
+            plot(Range(tsa,'s'),1.5*maxy*ones(length(Range(tsa,'s')),1),'r.')
+        else
+            plot(Range(tsa,'s'),1.3*maxx*ones(length(Range(tsa,'s')),1),'r.')
+        end
+        
+    end
+    
+    if plotpoisson
+        
+        figure ('units', 'normalized','outerposition', [0 1 0.6 0.6])
+        
+        [~,~,~,~,~,~,~,~,~,~,map2,~,stats2,px2,py2,~,~,~,~,~, ~]=...
+            PlaceFieldPoisson(tsa, XS, YS, 'LargeMatrix', LMatrix, 'smoothing', smo, 'size', sizeMap, 'plotresults', 0);
+        
+        
+        subplot(221)
+        imagesc(map.rate), axis xy, title('Firing map'), colorbar
+        c = clim;
+        colormap jet
+        subplot(222)
+        plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
+        hold on, plot(px,py,'r.')
+        minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
+        xlim([minx-difx*0.05 maxx+difx*0.05]);
+        miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
+        ylim([miny-dify*0.05 maxy+dify*0.05])
+        title(['Firing rate : ',num2str(FR),' Hz'])
+        subplot(223)
+        imagesc(map2.rate), axis xy, title('Firing map Poisson'), colorbar
+        colormap jet
+        caxis([c]);
+        subplot(224)
+        plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
+        hold on, plot(px2,py2,'r.')
+        minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
+        xlim([minx-difx*0.05 maxx+difx*0.05]);
+        miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
+        ylim([miny-dify*0.05 maxy+dify*0.05])
+        title(['Firing rate : ',num2str(FR),' Hz'])
+        annotation('textbox', [0.42 0.94 0.2 0.05], 'String', ['Spatial Info: ' num2str(stats.spatialInfo)], 'FontWeight', 'Bold',...
+            'FitBoxToText','on', 'LineStyle','none', 'FontSize', 14)
+        annotation('textbox', [0.42 0.48 0.2 0.05], 'String', ['Spatial Info: ' num2str(stats2.spatialInfo)], 'FontWeight', 'Bold',...
+            'FitBoxToText','on', 'LineStyle','none', 'FontSize', 14)
     end
     
 end
-
-if plotpoisson
-    
-    figure ('units', 'normalized','outerposition', [0 1 0.6 0.6])
-    
-    [~,~,~,~,~,~,~,~,~,~,map2,~,stats2,px2,py2,~,~,~,~,~, ~]=...
-        PlaceFieldPoisson(tsa, XS, YS, 'LargeMatrix', LMatrix, 'smoothing', smo, 'size', sizeMap, 'plotresults', 0);
-    
-    
-    subplot(221)
-    imagesc(map.rate), axis xy, title('Firing map'), colorbar
-    c = clim;
-    colormap jet
-    subplot(222)
-    plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
-    hold on, plot(px,py,'r.')
-    minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
-    xlim([minx-difx*0.05 maxx+difx*0.05]);
-    miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
-    ylim([miny-dify*0.05 maxy+dify*0.05])
-    title(['Firing rate : ',num2str(FR),' Hz'])
-    subplot(223)
-    imagesc(map2.rate), axis xy, title('Firing map Poisson'), colorbar
-    colormap jet
-    caxis([c]);
-    subplot(224)
-    plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
-    hold on, plot(px2,py2,'r.')
-    minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
-    xlim([minx-difx*0.05 maxx+difx*0.05]);
-    miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
-    ylim([miny-dify*0.05 maxy+dify*0.05])
-    title(['Firing rate : ',num2str(FR),' Hz'])
-    annotation('textbox', [0.42 0.94 0.2 0.05], 'String', ['Spatial Info: ' num2str(stats.spatialInfo)], 'FontWeight', 'Bold',...
-        'FitBoxToText','on', 'LineStyle','none', 'FontSize', 14)
-    annotation('textbox', [0.42 0.48 0.2 0.05], 'String', ['Spatial Info: ' num2str(stats2.spatialInfo)], 'FontWeight', 'Bold',...
-        'FitBoxToText','on', 'LineStyle','none', 'FontSize', 14)
-end
-
 %%
 % ------------------------------- Helper functions -------------------------------
 
