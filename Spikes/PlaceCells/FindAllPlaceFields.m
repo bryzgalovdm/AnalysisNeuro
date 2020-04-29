@@ -26,8 +26,8 @@
 % are taken into analysis
 % 
 % Place cells are defined as neurons that:
-%  - Have FR > <FRthresh> in the movement epoch > than <lThresh>
-%  - Have spatial information > <SIthresh>
+%  - Have FR higher than <FRthresh> in the movement epoch longer than <lThresh>
+%  - Have spatial information bigger than <SIthresh>
 %  - Have place fields bigger than <Sthresh_pf>
 %     * If algorithm defines two place fields, the script checks whether it least one of them 
 %             passes <Sthresh_pf>
@@ -52,7 +52,7 @@
 %% Parameters
 
 % Do you want to save the PC indices?
-sav = true;
+sav = false;
 
 % Overwrite
 overwrite = true;
@@ -64,8 +64,7 @@ savfig = false;
 pathfig = '/MOBS_workingON/Dima/Ongoing_results/PlaceField_Final/'; % without dropbox path
 
 % Mice in the analysis
-% nmouse = [797 798 828 861 882 905 906 911 912 977 994];
-nmouse = 994;
+nmouse = [797 798 828 861 882 905 906 911 912 977 994];
 % nmouse = [906 912]; % Had PreMazes
 % nmouse = [905 911]; % Did not have PreMazes
 
@@ -83,14 +82,14 @@ sizemap = 50; % ---- corresponds to around ~0.8 cm per pixel - maze 39*45 cm
 % Smoothing of maps
 smoothing = 2;
 
-% Firing rate threshold for PC definition
-FRthresh = 0.25;
+% Firing rate threshold for PC definition (0.25 - is low threshold)
+FRthresh = 0.3;
 
 % Epoch length threshold for PC definition
 lThresh = 300; % in sec
 
-% Spatial info threshold for PC definition
-SIthresh = 0.8;
+% Spatial info threshold for PC definition (0.8 - is low threshold)
+SIthresh = 0.9;
 
 % Threshold on the size of place field
 Sthresh_pf = 2/100; % 2% of the whole surface
@@ -282,7 +281,19 @@ end
 %% Save the place cell information in the apppropriate folders
 if sav
     for i=1:length(Dir.path)
-        PlaceCells = PlaceCells_temp{i};
+        PlaceCells = PlaceCells_temp{i}
+        
+        PlaceCells.options.EpochLong = EpochLong;
+        PlaceCells.options.sizemap = sizemap;
+        PlaceCells.options.smoothing = smoothing;
+        PlaceCells.options.FRthresh = FRthresh;
+        PlaceCells.options.lThresh = lThresh;
+        PlaceCells.options.SIthresh = SIthresh;
+        PlaceCells.options.Sthresh_pf = Sthresh_pf;
+        PlaceCells.options.Dthresh_pf = Dthresh_pf;
+        PlaceCells.options.speed_thresh = speed_thresh;
+        PlaceCells.options.OverlapFactor = OverlapFactor;
+        
         save([Dir.path{i}{1} 'SpikeData.mat'],'PlaceCells','-append');
     end
 end
@@ -321,27 +332,27 @@ if savfig
 end
 
 %% Optional figures - uncomment them if to help you debug
-% % Fields separately
-% fi = figure('units', 'normalized', 'outerposition', [0 1 1 1]);
-% for i=1:length(idx)
-%     subplot(9,10,i)
-%     if iscell(stats{i}.field)
-%         imagesc(stats{i}.field{1}+stats{i}.field{2})
-%         axis xy
-%         hold on
-%         plot(mazeMap(:,1),mazeMap(:,2),'w','LineWidth',3)
-%         plot(ShockZoneMap(:,1),ShockZoneMap(:,2),'r','LineWidth',3)
-%         title([Dir.name{idx{i}(1)} ' Cl' num2str(idx{i}(2))])
-%     else
-%         imagesc(stats{i}.field)
-%         axis xy
-%         hold on
-%         plot(mazeMap(:,1),mazeMap(:,2),'w','LineWidth',3)
-%         plot(ShockZoneMap(:,1),ShockZoneMap(:,2),'r','LineWidth',3)
-%         title([Dir.name{idx{i}(1)} ' Cl' num2str(idx{i}(2))])
-%     end
-%     hold off
-% end
+% Fields separately
+fi = figure('units', 'normalized', 'outerposition', [0 1 1 1]);
+for i=1:length(idx)
+    subplot(9,10,i)
+    if iscell(stats{i}.field)
+        imagesc(stats{i}.field{1}+stats{i}.field{2})
+        axis xy
+        hold on
+        plot(mazeMap(:,1),mazeMap(:,2),'w','LineWidth',3)
+        plot(ShockZoneMap(:,1),ShockZoneMap(:,2),'r','LineWidth',3)
+        title([Dir.name{idx{i}(1)} ' Cl' num2str(idx{i}(2))])
+    else
+        imagesc(stats{i}.field)
+        axis xy
+        hold on
+        plot(mazeMap(:,1),mazeMap(:,2),'w','LineWidth',3)
+        plot(ShockZoneMap(:,1),ShockZoneMap(:,2),'r','LineWidth',3)
+        title([Dir.name{idx{i}(1)} ' Cl' num2str(idx{i}(2))])
+    end
+    hold off
+end
 % 
 % % Plot all the rate maps
 % fa = figure('units', 'normalized', 'outerposition', [0 1 1 1]);
@@ -356,4 +367,5 @@ end
 %     hold off
 % end
 
+%% Optional figure - comparison of old and new method
 
