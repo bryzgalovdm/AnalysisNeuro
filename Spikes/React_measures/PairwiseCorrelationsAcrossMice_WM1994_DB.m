@@ -34,10 +34,10 @@ PCnum_thresh = 2;
 binsize = 0.1*20e3; % (sampling rate = 20000Hz);
 
 % How many pixels should overlap to define an overlap in the place field?
-overlapFactor = 50;
+overlapFactor = 25;
 
 % Do you want to save the figures?
-savfig = true;
+savfig = false;
 
 % Do you want to plot mean over mice or over pooled neurons? (false - default - over pooled neurons)
 plotmice = false;
@@ -361,25 +361,33 @@ if plotmice
         [pl_pre_mean; pl_task_mean; pl_condmov_mean; pl_condfreez_mean; pl_post_mean; pl_posttest_mean]);
 else
     % Average over all pooled neurons
-    pl_pre_std = [nanstd(CorrOPre_pooled) nanstd(CorrDPre_pooled)];
+%     pl_pre_std = [nanstd(CorrOPre_pooled) nanstd(CorrDPre_pooled)];
+    pl_pre_sem = [nansem_db(CorrOPre_pooled) nansem_db(CorrDPre_pooled)];
     pl_pre_mean = [nanmean(CorrOPre_pooled) nanmean(CorrDPre_pooled)];
     
-    pl_task_std = [nanstd(CorrOTask_pooled) nanstd(CorrDTask_pooled)];
+%     pl_task_std = [nanstd(CorrOTask_pooled) nanstd(CorrDTask_pooled)];
+    pl_task_sem = [nansem_db(CorrOTask_pooled) nansem_db(CorrDTask_pooled)];
     pl_task_mean = [nanmean(CorrOTask_pooled) nanmean(CorrDTask_pooled)];
     
-    pl_condmov_std = [nanstd(CorrOCondMov_pooled) nanstd(CorrDCondMov_pooled)];
+%     pl_condmov_std = [nanstd(CorrOCondMov_pooled) nanstd(CorrDCondMov_pooled)];
+    pl_condmov_sem = [nansem_db(CorrOCondMov_pooled) nansem_db(CorrDCondMov_pooled)];
     pl_condmov_mean = [nanmean(CorrOCondMov_pooled) nanmean(CorrDCondMov_pooled)];
     
-    pl_condfreez_std = [nanstd(CorrOCondFreez_pooled) nanstd(CorrDCondFreez_pooled)];
+%     pl_condfreez_std = [nanstd(CorrOCondFreez_pooled) nanstd(CorrDCondFreez_pooled)];
+    pl_condfreez_sem = [nansem_db(CorrOCondFreez_pooled) nansem_db(CorrDCondFreez_pooled)];
     pl_condfreez_mean = [nanmean(CorrOCondFreez_pooled) nanmean(CorrDCondFreez_pooled)];
     
-    pl_post_std = [nanstd(CorrOPost_pooled) nanstd(CorrDPost_pooled)];
+%     pl_post_std = [nanstd(CorrOPost_pooled) nanstd(CorrDPost_pooled)];
+    pl_post_sem = [nansem_db(CorrOPost_pooled) nansem_db(CorrDPost_pooled)];
     pl_post_mean = [nanmean(CorrOPost_pooled) nanmean(CorrDPost_pooled)];
     
-    pl_posttest_std = [nanstd(CorrOPostTest_pooled) nanstd(CorrDPostTest_pooled)];
+%     pl_posttest_std = [nanstd(CorrOPostTest_pooled) nanstd(CorrDPostTest_pooled)];
+    pl_posttest_sem = [nansem_db(CorrOPostTest_pooled) nansem_db(CorrDPostTest_pooled)];
     pl_posttest_mean = [nanmean(CorrOPostTest_pooled) nanmean(CorrDPostTest_pooled)];
     
-    b = barwitherr([pl_pre_std; pl_task_std; pl_condmov_std; pl_condfreez_std; pl_post_std; pl_posttest_std],...
+%     b = barwitherr([pl_pre_std; pl_task_std; pl_condmov_std; pl_condfreez_std; pl_post_std; pl_posttest_std],...
+%         [pl_pre_mean; pl_task_mean; pl_condmov_mean; pl_condfreez_mean; pl_post_mean; pl_posttest_mean]);
+    b = barwitherr([pl_pre_sem; pl_task_sem; pl_condmov_sem; pl_condfreez_sem; pl_post_sem; pl_posttest_sem],...
         [pl_pre_mean; pl_task_mean; pl_condmov_mean; pl_condfreez_mean; pl_post_mean; pl_posttest_mean]);
 end
 set(gca, 'FontSize', 14, 'FontWeight',  'bold');
@@ -394,10 +402,14 @@ hold on
 set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'Cond running', 'Cond Freezing', 'PostSleep', 'PostTests'})
 % set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'PostSleep', 'PostTests'})
 ylabel('Cross-Corellation')
-title('Averaged over mice')
+if plotmice
+    title('Averaged over mice');
+else
+    title('All neurons pooled');
+end
 hold off
 box off
-set(gca, 'FontSize', 14, 'FontWeight',  'bold');
+set(gca, 'FontSize', 16, 'FontWeight',  'bold');
 set(gca, 'LineWidth', 3);
 % title
 lg = legend('Overlapping PCs', 'Non-overlapping PCs');
