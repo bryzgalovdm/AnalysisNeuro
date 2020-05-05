@@ -47,7 +47,6 @@ function [EV,REV] = ExplainedVariance(Q_Pre, Q_Task, Q_Post)
 
 % ToDo
 
-
 %% Make sure the variables are not sparse
 Q_Pre = full(Q_Pre);
 Q_Task = full(Q_Task);
@@ -79,11 +78,11 @@ CorrM.post(:,idx_toremove) = [];
 %% Calculate correlation coefficients of correlation matrices
 
 % R_task,post
-temp = corrcoef(CorrM.post,CorrM.task); R_TaskPost = temp(1,2); clear temp
+R_TaskPost = corr2(CorrM.post,CorrM.task);
 % R_task,pre
-temp = corrcoef(CorrM.task,CorrM.pre); R_TaskPre = temp(1,2); clear temp
+R_TaskPre = corr2(CorrM.task,CorrM.pre); 
 % R_post,pre
-temp = corrcoef(CorrM.post,CorrM.pre); R_PostPre = temp(1,2); clear temp
+R_PostPre = corr2(CorrM.post,CorrM.pre);
 
 %% Calculate EV and REV
 
