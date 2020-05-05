@@ -18,7 +18,7 @@
 % 
 % Also conditioning but only for split data 
 % 
-% TODO (insiration - Kudrimoti et al., 1999):
+% TODO (inspiration - Kudrimoti et al., 1999):
 % - Control for FR of neurons
 % - Plot mean pairwise correlations
 
@@ -29,7 +29,8 @@ nmouse = [797 798 828 861 882 905 906 911 912 977 994];
 % nmouse = [905 911]; % Did not have PreMazes
 
 % Get paths of each individual mouse
-Dir = PathForExperimentsERC_Dima('UMazePAG');
+% Dir = PathForExperimentsERC_Dima('UMazePAG');
+Dir = PathForExperimentsERC_DimaMAC('UMazePAG');
 Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 
 % Do you want to save the figures?
@@ -277,7 +278,7 @@ for j=1:length(Dir.path)
                     end
                     idx_nonexist_PreSWS_Split_Final = idx_nonexist_PreSWS_Split{1};
                     for i = 2:numint
-                        idx_nonexist_PreSWS_Split_Final = [idx_nonexist_PreSWS_Split_Final idx_nonexist_PreSWS_Split{i}];
+                        idx_nonexist_PreSWS_Split_Final = [idx_nonexist_PreSWS_Split_Final; idx_nonexist_PreSWS_Split{i}];
                     end
                     
                     idx_nonexist_PreSWS_Split_Final = unique(idx_nonexist_PreSWS_Split_Final);
@@ -288,7 +289,7 @@ for j=1:length(Dir.path)
                     end
                     idx_nonexist_PostSWS_Split_Final = idx_nonexist_PostSWS_Split{1};
                     for i = 2:numint
-                        idx_nonexist_PostSWS_Split_Final = [idx_nonexist_PostSWS_Split_Final idx_nonexist_PostSWS_Split{i}];
+                        idx_nonexist_PostSWS_Split_Final = [idx_nonexist_PostSWS_Split_Final; idx_nonexist_PostSWS_Split{i}];
                     end
                     
                     idx_nonexist_PostSWS_Split_Final = unique(idx_nonexist_PostSWS_Split_Final);
