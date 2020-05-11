@@ -1,4 +1,4 @@
-function MakeViolinPlot_DB(A,Cols,X,Legends,ShowPoints, varargin)
+function MakeViolinPlot_DB(A,Cols,X,Legends,ShowPoints)
 % Input variables
 % A = your data in a cell format A = {Data1,Data2,Data3}
 % Cols = The color for each set of data Cols = {[1 0 0],[0 0 1],[0 1 0]}
