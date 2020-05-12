@@ -2,10 +2,10 @@ function [I,Res] = SplitIntervals(is, len)
 
 % [I,Res] = SplitIntervals(is, len) splits IntervalSet to interval sets of specific length
 %
-% This code makes your interval to be specific length (len) and give residual interval set (Res) 
+% This code makes your interval to be specific length (len) and give residual interval set (Res)
 %
-% 
-% 
+%
+%
 % USAGE
 %
 %    [I,Res] = SplitIntervals(is, len)
@@ -14,21 +14,20 @@ function [I,Res] = SplitIntervals(is, len)
 %
 %    is         an interval set
 %    len        desired total length of the resulting interval set in t
-%    begin      at which 
 %
 %    OUTPUTS
 %
 %    I      resulting splited interval sets
 %    Res    residual interval set, less than len ([] if no resudue)
 %
-% 
+%
 %    See also RestrictToTime, Restrict, intervalSet
 %
 % the current program is an addition to Francesco P. Battaglia's tsd plugin
 % copyright (c) 2004 Francesco P. Battaglia, (c) 2019 Dmitri Bryzgalov
 % This software is released under the GNU GPL
 % www.gnu.org/copyleft/gpl.html
-% released under the GPL   
+% released under the GPL
 
 % Find length of each interval
 for i=1:length(Start(is))
@@ -65,14 +64,19 @@ for i = 1:numI
             last(i) = j;
         else
             % Residual interval
-            if last(i-2) ~= last(i-1)
-                Res = or(intervalSet(Start(subset(is, last(i-1)))+delta, End(subset(is, last(i-1)))),...
-                    subset(is, last(i-1)+1:length(l)));
-                break
+            if i > 2
+                if last(i-2) ~= last(i-1)
+                    Res = or(intervalSet(Start(subset(is, last(i-1)))+delta, End(subset(is, last(i-1)))),...
+                        subset(is, last(i-1)+1:length(l)));
+                    break
+                else
+                    tempend = End(is);
+                    tempstart = End(I{i-1});
+                    Res = intervalSet(tempstart(end),tempend(end));
+                    break
+                end
             else
-                tempend = End(is);
-                tempstart = End(I{i-1});
-                Res = intervalSet(tempstart(end),tempend(end));
+                Res = is-is_result;
                 break
             end
         end
@@ -130,10 +134,10 @@ for i = 1:numI
     I{i} = is_result;
 end
 
-    % Residual interval
-    if ~exist('Res')
-        Res=[];
-    end
+% Residual interval
+if ~exist('Res')
+    Res=[];
+end
 
 end
 
