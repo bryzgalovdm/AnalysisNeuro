@@ -1,4 +1,17 @@
-%%%% help
+%%%% FRSleepcharac
+% 
+% A script - go to parameters
+% 
+% Calculates
+% - Firing rate
+% - Number of spikes
+% - Number of spikes per episode
+% - Number of potential stimulation (triggered by a spike with some ISI)
+% 
+% For REM and NREM sleep, and separately for NREM in the second hour of sleep
+% 
+% 20/05/2020 Dima Bryzgalov, MOBs team, Paris France
+% github.com/bryzgalovdm
 
 %% Parameters
 % Mice that go in the analysis

@@ -1,3 +1,18 @@
+%%%% NumDurEpisodesStages
+% 
+% A script - go to parameters
+% 
+% Calulates some properties of sleep in PAG
+% Particularly,
+% - overall length
+% - number of episodes
+% - duration of episodes
+% 
+% For REM and NREM sleep, and separately for NREM in the second hour of sleep
+% 
+% 20/05/2020 Dima Bryzgalov, MOBs team, Paris France
+% github.com/bryzgalovdm
+
 %% Parameters
 % Mice that go in the analysis
 nmouse = [797 798 828 861 882 905 906 911 912 977 994];
