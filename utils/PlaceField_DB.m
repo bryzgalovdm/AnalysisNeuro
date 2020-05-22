@@ -8,6 +8,7 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %
 %     optional arguments:
 %
+%     epoch          epoch to restrict your data to (you should use this optional argument if you want to restrict)
 %     smoothing      spatial smooting factor (default - 3)
 %     freqVideo      sampling rate of the video (default - 15)
 %     threshold      to define place field which is area around peak where FR >= threshold*peak (default - 0.5)
@@ -15,11 +16,10 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %     LargeMatrix    if 1 edges will be added to maps (default - 1 or True)
 %     PlotResults    plot the main figure (occupancy, spike counts, rate maps + movements) (default - 1)
 %     PlotPoisson    plot the figure that compares the actual rate map with rate maps of the poisson-distributed set of the same data (default - 1)
-
-
+% 
+% 
 %  OUTPUT
 %
-%     epoch          epoch to restrict your data to (you should use this optional argument if you want to restrict)
 %     map.rate       average firing rate map (in Hz)
 %     map.time       occupancy map (in s)
 %     map.count      firing count map
