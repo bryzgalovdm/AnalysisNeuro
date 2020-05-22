@@ -20,12 +20,12 @@ nmouse = [797 798 828 861 882 905 906 911 912 977 994];
 % nmouse = [905 911]; % Did not have PreMazes
 
 % Get paths
-% Dir = PathForExperimentsERC_Dima('UMazePAG');
-Dir = PathForExperimentsERC_DimaMAC('UMazePAG');
+Dir = PathForExperimentsERC_Dima('UMazePAG');
+% Dir = PathForExperimentsERC_DimaMAC('UMazePAG');
 Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 
 % Threshold on speed (im cm/s, epoch with lower are not considered)
-speed_thresh = 3;
+speed_thresh = 7;
 
 % Mice with how many PCs are taken into analysis?
 PCnum_thresh = 2;
@@ -41,6 +41,9 @@ savfig = false;
 
 % Do you want to plot mean over mice or over pooled neurons? (false - default - over pooled neurons)
 plotmice = false;
+
+% Do you want to plot each single cross correlation of overlapping pairs?
+plotexample = false;
 
 % Do you want to restrict your sleep time? If not put []
 SleepTimeToRestrict = 20*60*1e4;
@@ -152,6 +155,75 @@ for i=1:length(Dir.path)
         distantpairs{i}={};
     end
 end
+
+%% Look at each pair overlapping
+if plotexamples
+    for i=1:length(Dir.path)
+        
+        if ~isempty(overlappairs{i})
+            CPre = cell(length(overlappairs{i}),1);
+            CTask = cell(length(overlappairs{i}),1);
+            CPost = cell(length(overlappairs{i}),1);
+            for j=1:length(overlappairs{i})
+                [CPre{j},B] = CrossCorrDB(Data(Restrict(S_PC{overlappairs{i}{j}(1)},PreSleepFinal{i})),...
+                    Data(Restrict(S_PC{overlappairs{i}{j}(2)},PreSleepFinal{i})),4,200);
+                [CTask{j},B] = CrossCorrDB(Data(Restrict(S_PC{overlappairs{i}{j}(1)},UMazeMovingEpoch{i})),...
+                    Data(Restrict(S_PC{overlappairs{i}{j}(2)},UMazeMovingEpoch{i})),4,200);
+                [CPost{j},B] = CrossCorrDB(Data(Restrict(S_PC{overlappairs{i}{j}(1)},PostSleepFinal{i})),...
+                    Data(Restrict(S_PC{overlappairs{i}{j}(2)},PostSleepFinal{i})),4,200);
+            end
+            
+            % Figure
+            if length(overlappairs{i}) < 15
+                fff(i) = figure('units', 'normalized', 'outerposition', [0 0.55 0.7 0.4], 'Name', Dir.name{i});
+                title(Dir.name{i});
+                tabs = arrayfun(@(x) uitab('Title', ['Cl' num2str(spikes{i}.PlaceCells.idx(overlappairs{i}{x}(1)))...
+                    ' vs Cl' num2str(spikes{i}.PlaceCells.idx(overlappairs{i}{x}(2)))]), 1:length(overlappairs{i}));
+                ax = arrayfun(@(tab) axes(tab), tabs);
+                arrayfun(@(k) title(ax(k), ['Cl' num2str(spikes{i}.PlaceCells.idx(overlappairs{i}{k}(1)))...
+                    ' vs Cl' num2str(spikes{i}.PlaceCells.idx(overlappairs{i}{k}(2)))], 'FontSize', 16), 1:length(overlappairs{i}));
+                arrayfun(@(k) set(ax(k), 'NextPlot','add', 'FontSize', 16, 'FontWeight', 'bold'), 1:length(overlappairs{i}));
+                arrayfun(@(k) plot(ax(k), B, CPre{k}, 'k', 'LineWidth', 2),...
+                    1:length(overlappairs{i}));
+                arrayfun(@(k) plot(ax(k), B, CTask{k}, 'm', 'LineWidth', 2),...
+                    1:length(overlappairs{i}));
+                arrayfun(@(k) plot(ax(k), B, CPost{k}, 'b', 'LineWidth', 2),...
+                    1:length(overlappairs{i}));
+                arrayfun(@(k) line(ax(k),[0 0], ylim, 'Color', 'r', 'LineWidth',3), 1:length(overlappairs{i}));
+                arrayfun(@(k) ylabel(ax(k), 'Count'), 1:length(overlappairs{i}));
+                arrayfun(@(k) xlabel(ax(k), 'Time (ms)'), 1:length(overlappairs{i}));
+                arrayfun(@(k) legend(ax(k), {'Pre', 'Task', 'Post'}), 1:length(overlappairs{i}));
+            else
+                for numfig = 1:ceil(length(overlappairs{i})/15)
+                    try
+                        temp_o = overlappairs{i}(((numfig-1)*15)+1:((numfig-1)*15)+15);
+                    catch
+                        temp_o = overlappairs{i}(((numfig-1)*15)+1:end);
+                    end
+                    fff1(numfig) = figure('units', 'normalized', 'outerposition', [0 0.55 0.7 0.4], 'Name', Dir.name{i});
+                    title(Dir.name{i});
+                    tabs = arrayfun(@(x) uitab('Title', ['Cl' num2str(spikes{i}.PlaceCells.idx(temp_o{x}(1)))...
+                        ' vs Cl' num2str(spikes{i}.PlaceCells.idx(temp_o{x}(2)))]), 1:length(temp_o));
+                    ax = arrayfun(@(tab) axes(tab), tabs);
+                    arrayfun(@(k) title(ax(k), ['Cl' num2str(spikes{i}.PlaceCells.idx(temp_o{k}(1)))...
+                        ' vs Cl' num2str(spikes{i}.PlaceCells.idx(temp_o{k}(2)))], 'FontSize', 16), 1:length(temp_o));
+                    arrayfun(@(k) set(ax(k), 'NextPlot','add', 'FontSize', 16, 'FontWeight', 'bold'), 1:length(temp_o));
+                    arrayfun(@(k) plot(ax(k), B, CPre{k}, 'k', 'LineWidth', 2),...
+                        1:length(temp_o));
+                    arrayfun(@(k) plot(ax(k), B, CTask{k}, 'm', 'LineWidth', 2),...
+                        1:length(temp_o));
+                    arrayfun(@(k) plot(ax(k), B, CPost{k}, 'b', 'LineWidth', 2),...
+                        1:length(temp_o));
+                    arrayfun(@(k) line(ax(k),[0 0], ylim, 'Color', 'r', 'LineWidth',3), 1:length(temp_o));
+                    arrayfun(@(k) ylabel(ax(k), 'Count'), 1:length(temp_o));
+                    arrayfun(@(k) xlabel(ax(k), 'Time (ms)'), 1:length(temp_o));
+                    arrayfun(@(k) legend(ax(k), {'Pre', 'Task', 'Post'}), 1:length(temp_o));
+                end
+            end
+        end
+    end
+end
+
 
 %% Calculate cross-correlation between spike trains
 for i=1:length(Dir.path)
@@ -401,7 +473,7 @@ x = [b(1).XData + [b(1).XOffset]; b(1).XData - [b(1).XOffset]];
 hold on
 set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'Cond running', 'Cond Freezing', 'PostSleep', 'PostTests'})
 % set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'PostSleep', 'PostTests'})
-ylabel('Cross-Corellation')
+ylabel('Corellation')
 if plotmice
     title('Averaged over mice');
 else
