@@ -795,7 +795,7 @@ end
 Pl = {numStim.Pre.NREM_last.PCs, numStim.Pre.NREM_last.PCs};
 Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9]};
 tits = {['PreNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Pre.NREM_last.PCs(:,1)))) ')'],...
-    ['PreNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Post.NREM_last.PCs(:,1)))) ')']};
+    ['PostNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Post.NREM_last.PCs(:,1)))) ')']};
 f3 = figure('units', 'normalized', 'outerposition', [0 0 0.27 0.75]);
 ax = arrayfun(@(i) subplot(2,1,i, 'NextPlot', 'add', 'Box', 'off'), [1:2]);
 for i = 1:length(ax)
