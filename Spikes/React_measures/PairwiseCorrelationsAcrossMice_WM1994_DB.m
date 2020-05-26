@@ -25,25 +25,28 @@ Dir = PathForExperimentsERC_Dima('UMazePAG');
 Dir = RestrictPathForExperiment(Dir,'nMice',nmouse);
 
 % Threshold on speed (im cm/s, epoch with lower are not considered)
-speed_thresh = 7;
+speed_thresh = 4;
 
 % Mice with how many PCs are taken into analysis?
 PCnum_thresh = 2;
 
 % Parameters of cross-correlograms
-binsize = 0.1*20e3; % (sampling rate = 20000Hz);
+binsize = 0.1*1e4; % (measured in tsd units!!!);
 
 % How many pixels should overlap to define an overlap in the place field?
 overlapFactor = 25;
 
+% Do you want to correlate firing histograms (false) or short latency cross-correlations (true)?
+do_as_in_paper = false; % true is very-very slow. Use with care
+
 % Do you want to save the figures?
-savfig = false;
+savfig = true;
 
 % Do you want to plot mean over mice or over pooled neurons? (false - default - over pooled neurons)
-plotmice = false;
+plotmice = false; 
 
 % Do you want to plot each single cross correlation of overlapping pairs?
-plotexample = false;
+plotexamples = true;
 
 % Do you want to restrict your sleep time? If not put []
 SleepTimeToRestrict = 20*60*1e4;
@@ -124,14 +127,32 @@ for i=1:length(Dir.path)
     
     
     %% Create binned FR vectors
-    Q=MakeQfromS(spikes{i}.S,binsize);
-    
-    QPRE{i}=zscore(full(Data(Restrict(Q, PreSleepFinal{i}))));
-    QTASK{i} = zscore(full(Data(Restrict(Q, UMazeMovingEpoch{i}))));
-    QPOST{i} = zscore(full(Data(Restrict(Q, PostSleepFinal{i}))));
-    QCONDMOV{i} = zscore(full(Data(Restrict(Q, ConditioningMovingEpoch{i}))));
-    QCONDFREEZ{i} = zscore(full(Data(Restrict(Q, ConditioningFreezingEpoch{i}))));
-    QPOSTTEST{i} = zscore(full(Data(Restrict(Q, AfterConditioningMovingEpoch{i}))));
+    if do_as_in_paper
+        
+        Q = MakeQfromS(spikes{i}.S, 10); % 1ms nbin
+        
+        QPRE{i} = zscore(full(Data(Restrict(Q, PreSleepFinal{i}))));
+        QTASK{i} = zscore(full(Data(Restrict(Q, UMazeMovingEpoch{i}))));
+        QPOST{i} = zscore(full(Data(Restrict(Q, PostSleepFinal{i}))));
+        QCONDMOV{i} = zscore(full(Data(Restrict(Q, ConditioningMovingEpoch{i}))));
+        QCONDFREEZ{i} = zscore(full(Data(Restrict(Q, ConditioningFreezingEpoch{i}))));
+        QPOSTTEST{i} = zscore(full(Data(Restrict(Q, AfterConditioningMovingEpoch{i}))));
+        
+        clear Q
+        
+    else
+        Q = MakeQfromS(spikes{i}.S, binsize);
+        
+        QPRE{i} = zscore(full(Data(Restrict(Q, PreSleepFinal{i}))));
+        QTASK{i} = zscore(full(Data(Restrict(Q, UMazeMovingEpoch{i}))));
+        QPOST{i} = zscore(full(Data(Restrict(Q, PostSleepFinal{i}))));
+        QCONDMOV{i} = zscore(full(Data(Restrict(Q, ConditioningMovingEpoch{i}))));
+        QCONDFREEZ{i} = zscore(full(Data(Restrict(Q, ConditioningFreezingEpoch{i}))));
+        QPOSTTEST{i} = zscore(full(Data(Restrict(Q, AfterConditioningMovingEpoch{i}))));
+        
+        clear Q
+        
+    end
     
 end
 
@@ -196,9 +217,11 @@ if plotexamples
             else
                 for numfig = 1:ceil(length(overlappairs{i})/15)
                     try
-                        temp_o = overlappairs{i}(((numfig-1)*15)+1:((numfig-1)*15)+15);
+                        rr = ((numfig-1)*15)+1:((numfig-1)*15)+15;
+                        temp_o = overlappairs{i}(rr);
                     catch
-                        temp_o = overlappairs{i}(((numfig-1)*15)+1:end);
+                        rr = ((numfig-1)*15)+1:length(overlappairs{i});
+                        temp_o = overlappairs{i}(rr);
                     end
                     fff1(numfig) = figure('units', 'normalized', 'outerposition', [0 0.55 0.7 0.4], 'Name', Dir.name{i});
                     title(Dir.name{i});
@@ -208,12 +231,12 @@ if plotexamples
                     arrayfun(@(k) title(ax(k), ['Cl' num2str(spikes{i}.PlaceCells.idx(temp_o{k}(1)))...
                         ' vs Cl' num2str(spikes{i}.PlaceCells.idx(temp_o{k}(2)))], 'FontSize', 16), 1:length(temp_o));
                     arrayfun(@(k) set(ax(k), 'NextPlot','add', 'FontSize', 16, 'FontWeight', 'bold'), 1:length(temp_o));
-                    arrayfun(@(k) plot(ax(k), B, CPre{k}, 'k', 'LineWidth', 2),...
-                        1:length(temp_o));
-                    arrayfun(@(k) plot(ax(k), B, CTask{k}, 'm', 'LineWidth', 2),...
-                        1:length(temp_o));
-                    arrayfun(@(k) plot(ax(k), B, CPost{k}, 'b', 'LineWidth', 2),...
-                        1:length(temp_o));
+                    arrayfun(@(k) plot(ax(k+1-rr(1)), B, CPre{k}, 'k', 'LineWidth', 2),...
+                        rr);
+                    arrayfun(@(k) plot(ax(k+1-rr(1)), B, CTask{k}, 'm', 'LineWidth', 2),...
+                        rr);
+                    arrayfun(@(k) plot(ax(k+1-rr(1)), B, CPost{k}, 'b', 'LineWidth', 2),...
+                        rr);
                     arrayfun(@(k) line(ax(k),[0 0], ylim, 'Color', 'r', 'LineWidth',3), 1:length(temp_o));
                     arrayfun(@(k) ylabel(ax(k), 'Count'), 1:length(temp_o));
                     arrayfun(@(k) xlabel(ax(k), 'Time (ms)'), 1:length(temp_o));
@@ -228,86 +251,174 @@ end
 %% Calculate cross-correlation between spike trains
 for i=1:length(Dir.path)
     
-    % Perform calculations - overlapping cells
-    if ~isempty(overlappairs{i})
+    if do_as_in_paper
         
-        rho_overlap{i}.PRE = nan(1, length(overlappairs{i}));
-        rho_overlap{i}.TASK = nan(1, length(overlappairs{i}));
-        rho_overlap{i}.POST = nan(1, length(overlappairs{i}));
-        rho_overlap{i}.CONDMOV = nan(1, length(overlappairs{i}));
-        rho_overlap{i}.CONDFREEZ = nan(1, length(overlappairs{i}));
-        rho_overlap{i}.POSTTEST = nan(1, length(overlappairs{i}));
+         % Perform calculations - overlapping cells
+        if ~isempty(overlappairs{i})
+            
+            rho_overlap{i}.PRE = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.TASK = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.POST = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.CONDMOV = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.CONDFREEZ = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.POSTTEST = nan(1, length(overlappairs{i}));
         
-        for j=1:length(overlappairs{i})
-            pair = overlappairs{i}{j};
-            % PreSleep
-            temp = corrcoef(QPRE{i}(:,pair(1)),QPRE{i}(:,pair(2)));
-            rho_overlap{i}.PRE(j) = temp(1,2); clear temp
-            % Task
-            temp = corrcoef(QTASK{i}(:,pair(1)),QTASK{i}(:,pair(2)));
-            rho_overlap{i}.TASK(j) = temp(1,2); clear temp
-            % CondMoving
-            temp = corrcoef(QCONDMOV{i}(:,pair(1)),QCONDMOV{i}(:,pair(2)));
-            rho_overlap{i}.CONDMOV(j) = temp(1,2); clear temp
-            % CondFreezing
-            temp = corrcoef(QCONDFREEZ{i}(:,pair(1)),QCONDFREEZ{i}(:,pair(2)));
-            rho_overlap{i}.CONDFREEZ(j) = temp(1,2); clear temp
-            % PostSleep
-            temp = corrcoef(QPOST{i}(:,pair(1)),QPOST{i}(:,pair(2)));
-            rho_overlap{i}.POST(j) = temp(1,2); clear temp
-            % PostTests
-            temp = corrcoef(QPOSTTEST{i}(:,pair(1)),QPOSTTEST{i}(:,pair(2)));
-            rho_overlap{i}.POSTTEST(j) = temp(1,2); clear temp
+            for j=1:length(overlappairs{i})
+                pair = overlappairs{i}{j};
+                % PreSleep
+                rho_overlap{i}.PRE(j) = mean(xcorr(QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % Task
+                rho_overlap{i}.TASK(j) = mean(xcorr(QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % CondMoving
+                rho_overlap{i}.CONDMOV(j) = mean(xcorr(QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % CondFreezing
+                rho_overlap{i}.CONDFREEZ(j) = mean(xcorr(QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % PostSleep
+                rho_overlap{i}.POST(j) = mean(xcorr(QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % PostTests
+                rho_overlap{i}.POSTTEST(j) = mean(xcorr(QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+            end
+        else
+            rho_overlap{i}.PRE = [];
+            rho_overlap{i}.TASK = [];
+            rho_overlap{i}.POST = [];
+            rho_overlap{i}.CONDMOV = [];
+            rho_overlap{i}.CONDFREEZ = [];
+            rho_overlap{i}.POSTTEST = [];
         end
-    else
-        rho_overlap{i}.PRE = [];
-        rho_overlap{i}.TASK = [];
-        rho_overlap{i}.POST = [];
-        rho_overlap{i}.CONDMOV = [];
-        rho_overlap{i}.CONDFREEZ = [];
-        rho_overlap{i}.POSTTEST = [];
-    end
-    clear pair
-    
-    % Perform calculations - non-overlapping cells
-    if ~isempty(distantpairs{i})
+        clear pair
         
-        rho_distant{i}.PRE = nan(1, length(distantpairs{i}));
-        rho_distant{i}.TASK = nan(1, length(distantpairs{i}));
-        rho_distant{i}.POST = nan(1, length(distantpairs{i}));
-        rho_distant{i}.CONDMOV = nan(1, length(distantpairs{i}));
-        rho_distant{i}.CONDFREEZ = nan(1, length(distantpairs{i}));
-        rho_distant{i}.POSTTEST = nan(1, length(distantpairs{i}));
-        
-        % Non-Overlapping
-        for j=1:length(distantpairs{i})
-            pair = distantpairs{i}{j};
-            % PreSleep
-            temp = corrcoef(QPRE{i}(:,pair(1)),QPRE{i}(:,pair(2)));
-            rho_distant{i}.PRE(j) = temp(1,2); clear temp
-            % Task
-            temp = corrcoef(QTASK{i}(:,pair(1)),QTASK{i}(:,pair(2)));
-            rho_distant{i}.TASK(j) = temp(1,2); clear temp
-            % CondMoving
-            temp = corrcoef(QCONDMOV{i}(:,pair(1)),QCONDMOV{i}(:,pair(2)));
-            rho_distant{i}.CONDMOV(j) = temp(1,2); clear temp
-            % CondFreezing
-            temp = corrcoef(QCONDFREEZ{i}(:,pair(1)),QCONDFREEZ{i}(:,pair(2)));
-            rho_distant{i}.CONDFREEZ(j) = temp(1,2); clear temp
-            % PostSleep
-            temp = corrcoef(QPOST{i}(:,pair(1)),QPOST{i}(:,pair(2)));
-            rho_distant{i}.POST(j) = temp(1,2); clear temp
-            % PostTests
-            temp = corrcoef(QPOSTTEST{i}(:,pair(1)),QPOSTTEST{i}(:,pair(2)));
-            rho_distant{i}.POSTTEST(j) = temp(1,2); clear temp
+         % Perform calculations - non-overlapping cells
+        if ~isempty(distantpairs{i})
+            
+            rho_distant{i}.PRE = nan(1, length(distantpairs{i}));
+            rho_distant{i}.TASK = nan(1, length(distantpairs{i}));
+            rho_distant{i}.POST = nan(1, length(distantpairs{i}));
+            rho_distant{i}.CONDMOV = nan(1, length(distantpairs{i}));
+            rho_distant{i}.CONDFREEZ = nan(1, length(distantpairs{i}));
+            rho_distant{i}.POSTTEST = nan(1, length(distantpairs{i}));
+            
+            % Non-Overlapping
+            for j=1:length(distantpairs{i})
+                pair = distantpairs{i}{j};
+                % PreSleep
+                rho_distant{i}.PRE(j) = mean(xcorr(QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % Task
+                rho_distant{i}.TASK(j) = mean(xcorr(QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % CondMoving
+                rho_distant{i}.CONDMOV(j) = mean(xcorr(QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % CondFreezing
+                rho_distant{i}.CONDFREEZ(j) = mean(xcorr(QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % PostSleep
+                rho_distant{i}.POST(j) = mean(xcorr(QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+                % PostTests
+                rho_distant{i}.POSTTEST(j) = mean(xcorr(QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),...
+                    QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(2))), binsize/10, 'coeff'));
+            end
+        else
+            rho_distant{i}.PRE = [];
+            rho_distant{i}.TASK = [];
+            rho_distant{i}.POST = [];
+            rho_distant{i}.CONDMOV = [];
+            rho_distant{i}.CONDFREEZ = [];
+            rho_distant{i}.POSTTEST = [];
         end
-    else
-        rho_distant{i}.PRE = [];
-        rho_distant{i}.TASK = [];
-        rho_distant{i}.POST = [];
-        rho_distant{i}.CONDMOV = [];
-        rho_distant{i}.CONDFREEZ = [];
-        rho_distant{i}.POSTTEST = [];
+         
+    else % do_as_in_paper 
+        % Perform calculations - overlapping cells
+        if ~isempty(overlappairs{i})
+            
+            rho_overlap{i}.PRE = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.TASK = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.POST = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.CONDMOV = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.CONDFREEZ = nan(1, length(overlappairs{i}));
+            rho_overlap{i}.POSTTEST = nan(1, length(overlappairs{i}));
+            
+            
+            for j=1:length(overlappairs{i})
+                pair = overlappairs{i}{j};
+                % PreSleep
+                temp = corrcoef(QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_overlap{i}.PRE(j) = temp(1,2); clear temp
+                % Task
+                temp = corrcoef(QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_overlap{i}.TASK(j) = temp(1,2); clear temp
+                % CondMoving
+                temp = corrcoef(QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_overlap{i}.CONDMOV(j) = temp(1,2); clear temp
+                % CondFreezing
+                temp = corrcoef(QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_overlap{i}.CONDFREEZ(j) = temp(1,2); clear temp
+                % PostSleep
+                temp = corrcoef(QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_overlap{i}.POST(j) = temp(1,2); clear temp
+                % PostTests
+                temp = corrcoef(QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_overlap{i}.POSTTEST(j) = temp(1,2); clear temp
+            end
+        else
+            rho_overlap{i}.PRE = [];
+            rho_overlap{i}.TASK = [];
+            rho_overlap{i}.POST = [];
+            rho_overlap{i}.CONDMOV = [];
+            rho_overlap{i}.CONDFREEZ = [];
+            rho_overlap{i}.POSTTEST = [];
+        end
+        clear pair
+        
+        % Perform calculations - non-overlapping cells
+        if ~isempty(distantpairs{i})
+            
+            rho_distant{i}.PRE = nan(1, length(distantpairs{i}));
+            rho_distant{i}.TASK = nan(1, length(distantpairs{i}));
+            rho_distant{i}.POST = nan(1, length(distantpairs{i}));
+            rho_distant{i}.CONDMOV = nan(1, length(distantpairs{i}));
+            rho_distant{i}.CONDFREEZ = nan(1, length(distantpairs{i}));
+            rho_distant{i}.POSTTEST = nan(1, length(distantpairs{i}));
+            
+            % Non-Overlapping
+            for j=1:length(distantpairs{i})
+                pair = distantpairs{i}{j};
+                % PreSleep
+                temp = corrcoef(QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QPRE{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_distant{i}.PRE(j) = temp(1,2); clear temp
+                % Task
+                temp = corrcoef(QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QTASK{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_distant{i}.TASK(j) = temp(1,2); clear temp
+                % CondMoving
+                temp = corrcoef(QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QCONDMOV{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_distant{i}.CONDMOV(j) = temp(1,2); clear temp
+                % CondFreezing
+                temp = corrcoef(QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QCONDFREEZ{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_distant{i}.CONDFREEZ(j) = temp(1,2); clear temp
+                % PostSleep
+                temp = corrcoef(QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QPOST{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_distant{i}.POST(j) = temp(1,2); clear temp
+                % PostTests
+                temp = corrcoef(QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(1))),QPOSTTEST{i}(:,spikes{i}.PlaceCells.idx(pair(2))));
+                rho_distant{i}.POSTTEST(j) = temp(1,2); clear temp
+            end
+        else
+            rho_distant{i}.PRE = [];
+            rho_distant{i}.TASK = [];
+            rho_distant{i}.POST = [];
+            rho_distant{i}.CONDMOV = [];
+            rho_distant{i}.CONDFREEZ = [];
+            rho_distant{i}.POSTTEST = [];
+        end
+        
     end
     
 end
@@ -407,8 +518,8 @@ end
 
 %% Plot averaged over mice
 
+% Full figure
 fh = figure('units', 'normalized', 'outerposition', [0 0 0.7 0.7]);
-
 if plotmice
     % Average over mice
     pl_pre_std = nanstd(CorrPre_mean,0,1);
@@ -471,8 +582,8 @@ b(1).LineWidth = 3;
 b(2).LineWidth = 3;
 x = [b(1).XData + [b(1).XOffset]; b(1).XData - [b(1).XOffset]];
 hold on
-set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'Cond running', 'Cond Freezing', 'PostSleep', 'PostTests'})
-% set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations', 'PostSleep', 'PostTests'})
+set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'PreExplorations',...
+    'Cond running', 'Cond Freezing', 'PostSleep', 'PostTests'})
 ylabel('Corellation')
 if plotmice
     title('Averaged over mice');
@@ -486,19 +597,81 @@ set(gca, 'LineWidth', 3);
 % title
 lg = legend('Overlapping PCs', 'Non-overlapping PCs');
 lg.FontSize = 14;
+
+% Short figure
+f1 = figure('units', 'normalized', 'outerposition', [0 0 0.4 0.7]);
+if plotmice
+    % Average over mice
+    pl_pre_std = nanstd(CorrPre_mean,0,1);
+    pl_pre_mean = nanmean(CorrPre_mean,1);
+    
+    pl_task_std = nanstd(CorrTask_mean,0,1);
+    pl_task_mean = nanmean(CorrTask_mean,1); 
+    
+    pl_post_std = nanstd(CorrPost_mean,0,1);
+    pl_post_mean = nanmean(CorrPost_mean,1);
+    
+    b = barwitherr([pl_pre_std; pl_task_std; pl_post_std],...
+        [pl_pre_mean; pl_task_mean; pl_post_mean]);
+else
+    % Average over all pooled neurons
+    pl_pre_std = [nanstd(CorrOPre_pooled) nanstd(CorrDPre_pooled)];
+%     pl_pre_sem = [nansem_db(CorrOPre_pooled) nansem_db(CorrDPre_pooled)];
+    pl_pre_mean = [nanmean(CorrOPre_pooled) nanmean(CorrDPre_pooled)];
+    
+    pl_task_std = [nanstd(CorrOTask_pooled) nanstd(CorrDTask_pooled)];
+%     pl_task_sem = [nansem_db(CorrOTask_pooled) nansem_db(CorrDTask_pooled)];
+    pl_task_mean = [nanmean(CorrOTask_pooled) nanmean(CorrDTask_pooled)];
+    
+    pl_post_std = [nanstd(CorrOPost_pooled) nanstd(CorrDPost_pooled)];
+%     pl_post_sem = [nansem_db(CorrOPost_pooled) nansem_db(CorrDPost_pooled)];
+    pl_post_mean = [nanmean(CorrOPost_pooled) nanmean(CorrDPost_pooled)]; 
+    
+    b = barwitherr([pl_pre_std; pl_task_std; pl_post_std],...
+        [pl_pre_mean; pl_task_mean; pl_post_mean]);
+%     b = barwitherr([pl_pre_sem; pl_task_sem; pl_post_sem],...
+%         [pl_pre_mean; pl_task_mean; pl_post_mean]);
+end
+set(gca, 'FontSize', 18, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+b(1).BarWidth = 0.8;
+b(1).FaceColor = 'k';
+b(2).FaceColor = 'w';
+b(1).LineWidth = 3;
+b(2).LineWidth = 3;
+x = [b(1).XData + [b(1).XOffset]; b(1).XData - [b(1).XOffset]];
+hold on
+set(gca,'Xtick',[1:6],'XtickLabel',{'PreSleep', 'NoStimTask', 'PostSleep'})
+ylabel('Corellation')
+if plotmice
+    title('Averaged over mice');
+else
+    title('All neurons pooled');
+end
+hold off
+box off
+set(gca, 'FontSize', 18, 'FontWeight',  'bold');
+set(gca, 'LineWidth', 3);
+% title
+lg = legend('Overlapping PCs', 'Non-overlapping PCs');
+lg.FontSize = 14;
 % Stats - TODO
-% [p,h5,stats] = signrank([CPRE_O_Mean CPRE_D_Mean]);
+% [p,h5,stats] = signrank([CorrOPre_pooled; CorrDPre_pooled]);
 % if p < 0.05
 %     sigstar_DB({{1,2}},p,0, 'StarSize',14);
 % end
-% [p,h5,stats] = signrank([CTASK_O_Mean CTASK_D_Mean]);
+% [p,h5,stats] = signrank([CorrOTask_pooled; CorrDTask_pooled]);
 % if p < 0.05
 %     sigstar_DB({{3,4}},p,0, 'StarSize',14);
+% end
+% [p,h5,stats] = signrank([CorrOPost_pooled; CorrDPost_pooled]);
+% if p < 0.05
+%     sigstar_DB({{5,6}},p,0, 'StarSize',14);
 % end
 
 % Save the figure
 if savfig
-    saveas(gcf,[dropbox '/MOBS_workingON/Dima/Ongoing_results/PlaceField_Final/Pairwise_Small.fig']);
-    saveFigure(gcf,'Pairwise_Small',...
-        [dropbox '/MOBS_workingON/Dima/Ongoing_results/PlaceField_Final/']);
+    saveas(f1,[dropbox '/MOBS_workingON/Dima/Ongoing_results/React-Replay/Pairwise_Small.fig']);
+    saveFigure(f1,'Pairwise_Small',...
+        [dropbox '/MOBS_workingON/Dima/Ongoing_results/React-Replay/']);
 end
