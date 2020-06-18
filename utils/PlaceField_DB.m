@@ -69,8 +69,18 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 % Corrected by Dima Bryzgalov on the basis of common code from MOBS team, Paris, France
 % 10/04/2020
 
-%% Parameters handling
+%% Default values of optional arguments
 
+epoch = [];
+smo=3;
+freqVideo=15;
+threshold = 0.5;
+sizeMap=50;
+LMatrix=true;
+plotresults=1;
+plotpoisson=1;
+
+%% Optional parameters handling
 for i=1:2:length(varargin)
     
     switch(lower(varargin{i}))
@@ -123,56 +133,6 @@ for i=1:2:length(varargin)
             end
             
     end
-end
-
-% Default values of optional arguments
-
-try
-    epoch;
-catch
-    epoch = [];
-end
-
-try
-    smo;
-catch
-    smo=3;
-end
-
-try
-    freqVideo;
-catch
-    freqVideo=15;
-end
-
-try
-    threshold;
-catch
-    threshold = 0.5;
-end
-
-try
-    sizeMap;
-catch
-    sizeMap=50;
-end
-
-try
-    LMatrix;
-catch
-    LMatrix=true;
-end
-
-try
-    plotresults;
-catch
-    plotresults=1;
-end
-
-try
-    plotpoisson;
-catch
-    plotpoisson=1;
 end
 
 
