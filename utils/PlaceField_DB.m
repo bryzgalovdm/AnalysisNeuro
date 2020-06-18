@@ -55,7 +55,9 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %   occupancy = map.time/(T+eps);
 %   meanFiringRate = sum(sum(map.count))/(sum(sum(map.time)+eps));
 %   if meanFiringRate == 0,
-%     stats.specificity = 0;
+%     stats.specificity = 0;FR
+
+
 %   else
 %     logArg = map.count/meanFiringRate;
 %     logArg(logArg <= 1) = 1;
@@ -445,10 +447,8 @@ else
         
         subplot(3,2,4) , plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
         hold on, plot(px,py,'r.')
-        minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
-        xlim([minx-difx*0.05 maxx+difx*0.05]);
-        miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
-        ylim([miny-dify*0.05 maxy+dify*0.05])
+        [xl, yl] = DefineGoodFigLimits_2D(Data(XS),Data(YS));
+        xlim(xl); ylim(yl);
         title(['Firing rate : ',num2str(FR),' Hz'])
         
         subplot(3,2,5:6), hold on,
@@ -477,10 +477,8 @@ else
         subplot(222)
         plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
         hold on, plot(px,py,'r.')
-        minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
-        xlim([minx-difx*0.05 maxx+difx*0.05]);
-        miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
-        ylim([miny-dify*0.05 maxy+dify*0.05])
+        [xl, yl] = DefineGoodFigLimits_2D(Data(XS),Data(YS));
+        xlim(xl); ylim(yl);
         title(['Firing rate : ',num2str(FR),' Hz'])
         subplot(223)
         imagesc(map2.rate), axis xy, title('Firing map Poisson'), colorbar
@@ -489,10 +487,8 @@ else
         subplot(224)
         plot(Data(XS),Data(YS),'Color',[0.8 0.8 0.8])
         hold on, plot(px2,py2,'r.')
-        minx = min(Data(XS)); maxx = max(Data(XS)); difx = maxx-minx;
-        xlim([minx-difx*0.05 maxx+difx*0.05]);
-        miny = min(Data(YS)); maxy = max(Data(YS)); dify = maxy-miny;
-        ylim([miny-dify*0.05 maxy+dify*0.05])
+        [xl, yl] = DefineGoodFigLimits_2D(Data(XS),Data(YS));
+        xlim(xl); ylim(yl);
         title(['Firing rate : ',num2str(FR),' Hz'])
         annotation('textbox', [0.42 0.94 0.2 0.05], 'String', ['Spatial Info: ' num2str(stats.spatialInfo)], 'FontWeight', 'Bold',...
             'FitBoxToText','on', 'LineStyle','none', 'FontSize', 14)
