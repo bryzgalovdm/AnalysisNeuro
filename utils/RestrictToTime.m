@@ -13,7 +13,6 @@ function I = RestrictToTime(is, len)
 %
 %    is         an interval set
 %    len        desired total length of the resulting interval set in t
-%    begin      at which 
 %
 %    OUTPUTS
 %
