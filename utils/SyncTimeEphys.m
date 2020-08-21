@@ -16,7 +16,18 @@ function SyncTimeEphys(folderEvents, folderBehav, ExpeInfo)
     
 %% Do the job
 [~, out_ind] = regexp(folderEvents, 'recording\d/');
-TTLInfo_sess = MakeData_TTLInfo_OpenEphys([folderEvents '/Rhythm_FPGA-100.0_TTL_1.mat'], folderEvents(1:out_ind), ExpeInfo);
+if ~exist([folderEvents(1:out_ind) 'continuous/Rhythm_FPGA-100.0/continuous_Rhythm_FPGA-100.0.mat'], 'file')
+    error('No syncronizing file. Please convert timestamps.npy in continuous folder');
+end
+
+TTLInfo_sess = MakeData_TTLInfo_OpenEphys([folderEvents '/Rhythm_FPGA-100.0_TTL_1.mat'],...
+    folderEvents(1:out_ind),... 
+    [folderEvents(1:out_ind) 'continuous/Rhythm_FPGA-100.0/'],...
+    ExpeInfo);
+% TTLInfo_sess = MakeData_TTLInfo_OpenEphys([folderEvents '/Rhythm_FPGA-100.0_TTL_1.mat'],...
+%     [folderEvents(1:out_ind) 'continuous/Rhythm_FPGA-100.0/continuous_Rhythm_FPGA-100.0.mat'],...
+%     ExpeInfo);
+
 a = load([folderBehav '/behavResources.mat']);
 a = CorrectTimeBackToEphys(a, TTLInfo_sess);
 
