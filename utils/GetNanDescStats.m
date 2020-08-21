@@ -1,6 +1,6 @@
 function [Mean, STD] = GetNanDescStats(dat, dim)
 % 
-% Wraps in both nanmean and nanstd in one function
+% Wraps both nanmean and nanstd in one function
 % 
 % INPUT
 % 
