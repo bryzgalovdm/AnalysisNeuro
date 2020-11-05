@@ -41,7 +41,7 @@ end
 %% Get SpInfo
 for isess = 1:length(SessionIS)
     for isp = 1:length(S)
-        if ~isempty(stats{isp, isess}.spatialInfo)
+        if ~isempty(stats{isp, isess}) && ~isempty(stats{isp, isess}.spatialInfo)
             SpInfo(isp, isess) = stats{isp, isess}.spatialInfo;
         end
     end
@@ -61,10 +61,12 @@ for isess = 1:length(SessionIS)
     f1 = figure ('units', 'normalized','outerposition', [0 0 1 1]);
     for isp = 1:length(S)
         subplot(nrows, ncols, isp);
-        imagesc(map{isp, isess}.rate);
-        axis xy
-        colormap jet
-        title(['Cl' num2str(isp) ',FR=' num2str(round(FR{isp, isess},2)) ' Hz'])
+        if ~isempty(map{isp, isess})
+            imagesc(map{isp, isess}.rate);
+            axis xy
+            colormap jet
+            title(['Cl' num2str(isp) ',FR=' num2str(round(FR{isp, isess},2)) ' Hz'])
+        end
     end
     mtit(f1, SessionNames{isess}, 'FontSize', 16, 'xoff', 0, 'yoff', 0.01, 'zoff', 0.04);
     % Save
@@ -77,7 +79,10 @@ for isess = 1:length(SessionIS)
         subplot(nrows, ncols, isp);
         plot(Data(Restrict(Xtsd, SessionIS{isess})), Data(Restrict(Ytsd, SessionIS{isess})),...
             'Color',[0.8 0.8 0.8]);
-        hold on, plot(px{isp, isess},py{isp, isess},'r.');
+        hold on
+        if ~isempty(px{isp, isess})
+            plot(px{isp, isess},py{isp, isess},'r.');
+        end
         
         [xl, yl] = DefineGoodFigLimits_2D(Data(Restrict(Xtsd, SessionIS{isess})),...
             Data(Restrict(Ytsd, SessionIS{isess})));

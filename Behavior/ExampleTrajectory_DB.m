@@ -36,7 +36,7 @@ for i=1:2:length(varargin)
     switch(lower(varargin{i})) 
         case 'issave'
             IsSave = varargin{i+1};
-            if IsSave ~= 1 || IsSave ~= 0
+            if IsSave ~= 1 && IsSave ~= 0
                 error('Incorrect value for property ''IsSave'' (type ''help ExampleTrajectory_DB'' for details).');
             end
         case 'numtest'

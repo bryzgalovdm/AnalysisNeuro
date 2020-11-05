@@ -35,8 +35,14 @@ for i=1:2:length(varargin)
             szside = varargin{i+1};
             if ~isa(szside,'char')
                 error('Incorrect value for property ''SZside'' (type ''help FigureRealVSInferred'' for details).');
-            elseif strcmp(szside, 'left') || strcmp(szside, 'right')
-                error('Shock zone side could be either left or right (type ''help FigureRealVSInferred'' for details).');
+            elseif ~strcmp(szside, 'right')
+                if ~strcmp(szside, 'left')
+                    error('Shock zone side could be either left or right (type ''help FigureRealVSInferred'' for details).');
+                end
+            elseif ~strcmp(szside, 'left')
+                if ~strcmp(szside, 'right')
+                    error('Shock zone side could be either left or right (type ''help FigureRealVSInferred'' for details).');
+                end
             end
     end
 end
@@ -55,6 +61,11 @@ else
     end
 end
 orig = load('nnBehavior.mat', 'behavior');
+
+%% Do a folder
+if exist('RealVsInferred_figs', 'dir') ~= 7
+    mkdir('RealVsInferred_figs');
+end
 
 %% Initialize the maze
 maze = [0.36 0.38; 0.36 .96; 1.04 .96; 1.04 0.38; 0.78 0.38; 0.78 0.80; 0.62 0.80; 0.62 0.38; 0.36 0.38];
@@ -122,22 +133,28 @@ for itresh = 1:length(thresh)
     title(['Thresh = ' num2str(thresh(itresh))])
     set(gca, 'XTickLabel', {}, 'YTickLabel', {});
     set(gca, 'FontSize', 16, 'FontWeight', 'bold');
+    legend('Real pos', 'Inference')
+    
+    saveas(f1,[pwd '/RealVsInferred_figs/AllPoints_' szside '_' num2str(thresh(itresh)) '.fig']);
+    saveFigure(f1, ['AllPoints_' szside '_' num2str(thresh(itresh))],[pwd '/RealVsInferred_figs/']);
     
     % Figure inferred and real
     f2 = figure('Color',[1 1 1],'rend','painters','pos',[100+itresh*10 20+itresh*10 1600 600])
     subplot(121)
     scatter(posx(val),posy(val),50,tps(val)','filled');
+    title('Real position', 'FontSize', 16)
     hold on
     plot(maze(:,1),maze(:,2),'k','LineWidth',2)
     rectangle('Position',ShockZone,'EdgeColor','r','LineWidth',2)
     xlim([0.335 1.045]);
     ylim([0.36 1])
     set(gca,'visible','off')
+    set(findall(gca, 'type', 'text'), 'visible', 'on')
     set(gca, 'XTickLabel', {}, 'YTickLabel', {});
     set(gca, 'FontSize', 16, 'FontWeight', 'bold');
-    title('Real position', 'FontSize', 16)
     subplot(122)
     scatter(inferredposX(val),inferredposY(val),50,tps(val)','filled');
+    title('Online inference', 'FontSize', 16)
     colorbar
     hold on
     plot(maze(:,1),maze(:,2),'k','LineWidth',2)
@@ -145,10 +162,15 @@ for itresh = 1:length(thresh)
     xlim([0.335 1.045])
     ylim([0.36 1])
     set(gca,'visible','off')
+    set(findall(gca, 'type', 'text'), 'visible', 'on')
     set(gca, 'XTickLabel', {}, 'YTickLabel', {});
     set(gca, 'FontSize', 16, 'FontWeight', 'bold');
-    title('Online inference', 'FontSize', 16)
     annotation('textbox', [0.46 0.86 0.1 0.1], 'String', ['Thresh = ' num2str(thresh(itresh))], 'FontWeight', 'bold', 'FontSize', 12,...
         'EdgeColor', 'none', 'FontSize', 16, 'FontWeight', 'bold')
+    annotation('textbox', [0.45 0.03 0.1 0.1], 'String', [num2str(length(val)) ' points decoded'], 'FontWeight', 'bold', 'FontSize', 12,...
+        'EdgeColor', 'none', 'FontSize', 16, 'FontWeight', 'bold')
+    
+    saveas(f2,[pwd '/RealVsInferred_figs/RealVsInf_' szside '_' num2str(thresh(itresh)) '.fig']);
+    saveFigure(f2, ['RealVsInf_' szside '_' num2str(thresh(itresh))],[pwd '/RealVsInferred_figs/']);
 end
 
