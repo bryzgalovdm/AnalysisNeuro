@@ -1,4 +1,4 @@
-function BehaviorERC(nMice, varargin)
+function fh = BehaviorERC(nMice, varargin)
 %
 % This function plots 4 behavioral metrics of the Shock Zone in the UMaze
 % for Pre- and Post-Tests:
@@ -22,7 +22,6 @@ function BehaviorERC(nMice, varargin)
 % github.com/bryzgalovdm
 
 %% Parameters
-DataType = 'Behavior';
 FigName = 'UMazePAG_Behavior';
 IsSave = false;
 SP = 0;
@@ -212,7 +211,6 @@ title('Average speed in the zone', 'FontSize', 14);
 
 %% Save
 if IsSave
-    dirsave = ChooseFolderForFigures_DB(DataType);
-    saveas(fh,[dirsave '/' FigName '.fig']);
-    saveFigure(fh,FigName, dirsave);
+    saveas(fh,[pwd '/' FigName '.fig']);
+    saveFigure(fh,pwd, dirsave);
 end
