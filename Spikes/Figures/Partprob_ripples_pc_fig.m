@@ -1,4 +1,6 @@
 %% Parameters
+IsSave = true;
+
 ShockArea = [7 8; 25 30];
 SafeArea = [38 8; 55 30];
 
@@ -50,10 +52,14 @@ oc_cond = flatten_cellarray(ripprob_oc.Cond, 1);
 oc_post = flatten_cellarray(ripprob_oc.Post, 1);
 
 %% Plot participation probability during ripples
+disp(['Number of shock zone place cells: ' num2str(size(sz_pre,1))]);
+disp(['Number of safe zone cells: ' num2str(size(sa_pre,1))]);
+disp(['Number of other neurons: ' num2str(size(oc_pre,1))]);
+
 % Pre
 % Number of stimulations in REM - separate figure for only SZ cells
 Pl = {{sz_pre, sa_pre, oc_pre}, {sz_cond, sa_cond, oc_cond}, {sz_post, sa_post, oc_post}};
-Cols = {[0.9 0.2 0.2], [[0.2 0.2 0.9]], [0.6 0.6 0.6]};
+Cols = {[0.9 0.2 0.2], [0.2 0.2 0.9], [0.6 0.6 0.6]};
 tits = {'PreSleep', 'Conditioning', 'PostSleep'};
 f1 = figure('units', 'normalized', 'outerposition', [0 0 0.9 0.75]);
 ax = arrayfun(@(i) subplot(1,3,i, 'NextPlot', 'add', 'Box', 'off'), 1:3);
@@ -68,4 +74,11 @@ for ifig = 1:length(ax)
     title(tits{ifig}, 'FontSize', 16);
     ylim(yl);
 end
-mtit('Probability to participate in ripples for place cells', 'FontSize', 18, 'xoff', 0, 'yoff', 0.05)
+% mtit('Probability to participate in ripples for place cells', 'FontSize', 18, 'xoff', 0, 'yoff', 0.05)
+
+%% Save figure
+if IsSave
+    foldertosave = ChooseFolderForFigures_DB('Spikes');
+    saveas(f1, [foldertosave '/ParticipProbRipples_boxplot.fig']);
+    saveFigure(f1, 'ParticipProbRipples_boxplot', foldertosave);
+end

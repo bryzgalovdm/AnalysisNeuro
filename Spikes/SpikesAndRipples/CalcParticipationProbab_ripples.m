@@ -193,7 +193,7 @@ if ~isempty(sep)
     
     % Load the data
     for imouse = 1:length(Dir.path)
-        temp{imouse} = load('behavResources.mat', 'CleanAlignedXtsd', 'CleanAlignedYtsd', 'CleanVtsd');
+        temp{imouse} = load([Dir.path{imouse}{1} '/behavResources.mat'], 'CleanAlignedXtsd', 'CleanAlignedYtsd', 'CleanVtsd');
         VtsdSmoothed  = tsd(Range(temp{imouse}.CleanVtsd),movmedian(Data(temp{imouse}.CleanVtsd),5)); % SmoFac = 5
         LocomotionEpoch = thresholdIntervals(VtsdSmoothed,3,'Direction','Above');
         
@@ -212,9 +212,9 @@ if ~isempty(sep)
             id_others{imouse} = cell(length(sep),1);
             for iarea = 1:length(sep)
                 id_overlap{imouse}{iarea} = FindIDofPC_InZone(s{imouse}.S, s{imouse}.PlaceCells.idx,...
-                    temp{imouse}.CleanAlignedXtsd, temp{i}.CleanAlignedYtsd, MovingEpoch{imouse}, sep{iarea});
+                    temp{imouse}.CleanAlignedXtsd, temp{imouse}.CleanAlignedYtsd, MovingEpoch{imouse}, sep{iarea});
                 id_overlap{imouse}{iarea} = FindIDofPC_InZone(s{imouse}.S, s{imouse}.PlaceCells.idx,...
-                    temp{imouse}.CleanAlignedXtsd, temp{i}.CleanAlignedYtsd, MovingEpoch{imouse}, sep{iarea});                
+                    temp{imouse}.CleanAlignedXtsd, temp{imouse}.CleanAlignedYtsd, MovingEpoch{imouse}, sep{iarea});                
             end
             id_others{imouse} = setdiff(1:length(s{imouse}.PlaceCells.idx), [id_overlap{imouse}{1};...
                     id_overlap{imouse}{2}]);
