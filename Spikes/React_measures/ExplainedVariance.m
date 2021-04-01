@@ -1,4 +1,4 @@
-function [EV,REV] = ExplainedVariance(Q_Pre, Q_Task, Q_Post)
+function [EV,REV,CorrM] = ExplainedVariance(Q_Pre, Q_Task, Q_Post)
 
 % This script calculates explained variance (EV) and reverse EV
 % the same manner it was calculated in Kudrimoti et al., 1999
@@ -37,6 +37,7 @@ function [EV,REV] = ExplainedVariance(Q_Pre, Q_Task, Q_Post)
 %     - EV  -      explained variance
 %     - REV -      reverse expained variance
 %                  (pre- and post-epochs are swopped)
+%     - CorrM      Matrices of correlations for Pre-, Task and Post
 %                  
 %  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %  
@@ -52,14 +53,12 @@ Q_Pre = full(Q_Pre);
 Q_Task = full(Q_Task);
 Q_Post = full(Q_Post);
 
-
 %% Calculate the correlation matrices
 CorrM.pre = corr(Q_Pre);
 CorrM.task = corr(Q_Task);
 CorrM.post = corr(Q_Post);
 
 %% Find non-firing neurons in each epoch
-
 idx_nonexist_pre = find(isnan(CorrM.pre(:,1)));
 idx_nonexist_task = find(isnan(CorrM.task(:,1)));
 idx_nonexist_post = find(isnan(CorrM.post(:,1)));
@@ -67,7 +66,6 @@ idx_nonexist_post = find(isnan(CorrM.post(:,1)));
 idx_toremove = unique(([idx_nonexist_pre; idx_nonexist_task; idx_nonexist_post])');
 
 %% Remove non-firing neurons
-
 CorrM.pre(idx_toremove,:) = [];
 CorrM.pre(:,idx_toremove) = [];
 CorrM.task(idx_toremove,:) = [];

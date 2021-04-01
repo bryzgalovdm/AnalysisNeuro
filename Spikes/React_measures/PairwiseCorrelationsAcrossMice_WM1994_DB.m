@@ -1,4 +1,4 @@
-function PairwiseCorrelationsAcrossMice_WM1994_DB(nmice, varargin)
+function [rho_overlap, rho_distant] = PairwiseCorrelationsAcrossMice_WM1994_DB(nmice, experiment, varargin)
 % PairwiseCorrelationsAcrossMice_WM1994_DB
 %
 % This function performs pairwise correlations on all overlapping
@@ -10,6 +10,7 @@ function PairwiseCorrelationsAcrossMice_WM1994_DB(nmice, varargin)
 %   nmice               array with mice numbers that will harvested from ERC
 %                       PathForExperiments. Each mouse should contain
 %                       PlaceCells structure in its SpikeData.mat
+%   experiment          tyoe of experiment to analyse ('PAG' or 'MFB')
 %   SpeedThresh         threshold (in cm/s) to calculate place fields
 %                       (default = 4) (optional)
 %   BinSize             binsize (in tsd units) used to creat spike-time
@@ -35,8 +36,8 @@ function PairwiseCorrelationsAcrossMice_WM1994_DB(nmice, varargin)
 % 
 % EXAMPLE
 % 
-%   PairwiseCorrelationsAcrossMice_WM1994_DB([797 798 1117]);
-%   PairwiseCorrelationsAcrossMice_WM1994_DB([797 798 1117], 'SaveFigure', true, 'BinSize', 0.05*1e4);
+%   PairwiseCorrelationsAcrossMice_WM1994_DB([797 798 1117], 'PAG');
+%   PairwiseCorrelationsAcrossMice_WM1994_DB([797 798 1117], 'MFB', 'SaveFigure', true, 'BinSize', 0.05*1e4);
 %
 % By Dima Bryzgalov, MOBS team, Paris,
 % 01/05/2020; reworked on 05/03/2021
@@ -44,7 +45,11 @@ function PairwiseCorrelationsAcrossMice_WM1994_DB(nmice, varargin)
 
 %% Parameters
 % Behavioral states
-states = {'PreSleep', 'Task', 'CondMov', 'CondFreeze', 'PostSleep', 'PostTests'};
+if strcmp(experiment, 'PAG')
+    states = {'PreSleep', 'Task', 'CondMov', 'CondFreeze', 'PostSleep', 'PostTests'};
+elseif strcmp(experiment, 'MFB')
+    states = {'PreSleep', 'Task', 'CondMov', 'PostSleep', 'PostTests'};
+end
 % Colors for plots
 cols = {[0.2 0.2 0.2], [0.8 0.8 0.8]};
 
@@ -108,9 +113,16 @@ for i=1:2:length(varargin)
     end
 end
 
+%% Manage experiment
+if strcmp(experiment, 'PAG')
+    fetchpaths = 'UMazePAG';
+elseif strcmp(experiment, 'MFB')
+    fetchpaths = 'StimMFBWake';
+end
+
 %% Load Data
 % Get paths
-Dir = PathForExperimentsERC('UMazePAG');
+Dir = PathForExperimentsERC(fetchpaths);
 Dir = RestrictPathForExperiment(Dir,'nMice',nmice);
 
 % Allocate memory
@@ -132,13 +144,13 @@ end
 
 for i=1:length(Dir.path)
     spikes{i} = load([Dir.path{i}{1} 'SpikeData.mat'],'S','PlaceCells');
-    behav{i} = load([Dir.path{i}{1} 'behavResources.mat'],'SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd','FreezeAccEpoch');
+    behav{i} = load([Dir.path{i}{1} 'behavResources.mat'],'SessionEpoch','CleanVtsd','CleanXtsd','CleanYtsd','FreezeAccEpoch');
     try
         sleep{i} = load([Dir.path{i}{1} 'SleepScoring_OBGamma.mat'],'SWSEpoch','REMEpoch','Sleep');
     catch
         sleep{i} = load([Dir.path{i}{1} 'SleepScoring_Accelero.mat'],'SWSEpoch','REMEpoch','Sleep'); % REM and Sleep are not used
     end
-end 
+end
 
 %% Create Epochs
 for i=1:length(Dir.path)
@@ -147,8 +159,10 @@ for i=1:length(Dir.path)
         'Speed', behav{i}.CleanVtsd, 'SpeedThresh', speed_thresh);
     
     % Get freezing epoch during cond
-    [~,~,tempEpoch] = ReturnMnemozyneEpochs(behav{i}.SessionEpoch);
-    ConditioningFreezingEpoch = and(behav{i}.FreezeAccEpoch, tempEpoch);
+    if strcmp(experiment, 'PAG')
+        [~,~,tempEpoch] = ReturnMnemozyneEpochs(behav{i}.SessionEpoch);
+        ConditioningFreezingEpoch = and(behav{i}.FreezeAccEpoch, tempEpoch);
+    end
     
     % SleepEpochs
     if isempty(SleepTimeToRestrict)
@@ -160,8 +174,11 @@ for i=1:length(Dir.path)
     end
     
     % Pack everything in one cell
-    Epochs{i} = {PreSleepFinal, TaskEpoch, ConditioningEpoch, ConditioningFreezingEpoch, PostSleepFinal, AfterConditioningEpoch};
-    
+    if strcmp(experiment, 'PAG')
+        Epochs{i} = {PreSleepFinal, TaskEpoch, ConditioningEpoch, ConditioningFreezingEpoch, PostSleepFinal, AfterConditioningEpoch};
+    elseif strcmp(experiment, 'MFB')
+        Epochs{i} = {PreSleepFinal, TaskEpoch, ConditioningEpoch, PostSleepFinal, AfterConditioningEpoch};
+    end
 end
  
 %% Create binned FR vectors
@@ -193,7 +210,7 @@ for i=1:length(Dir.path)
             
             S_PC{i} = spikes{i}.S(spikes{i}.PlaceCells.idx);
             
-            [overlappairs{i}, distantpairs{i}] = FindOverlappingPlaceFields(S_PC{i}, behav{i}.CleanAlignedXtsd, behav{i}.CleanAlignedYtsd,...
+            [overlappairs{i}, distantpairs{i}] = FindOverlappingPlaceFields(S_PC{i}, behav{i}.CleanXtsd, behav{i}.CleanYtsd,...
                 UMazeEpoch{i}, overlapFactor);
             
         else
@@ -275,12 +292,19 @@ for i=1:length(Dir.path)
     end
 end
 % Remove missing values (PostSleep is a reference)
-idx_toremove_overlap = find(isnan(rho_overlap{5}),1);
-idx_toremove_distant = find(isnan(rho_distant{5}),1);
+id_postsleep = find(contains(states, 'PostSleep'));
+idx_toremove_overlap = find(isnan(rho_overlap{id_postsleep}),1);
+idx_toremove_distant = find(isnan(rho_distant{id_postsleep}),1);
 for iepoch = 1:length(states)
     rho_overlap{iepoch}(idx_toremove_overlap:end) = [];
     rho_distant{iepoch}(idx_toremove_distant:end) = [];
 end
+
+id_presleep = find(contains(states, 'PreSleep'));
+id_task = find(contains(states, 'Task'));
+id_condmov = find(contains(states, 'CondMov'));
+id_condfre = find(contains(states, 'CondFreeze'));
+id_post = find(contains(states, 'PostTests'));
 
 %% Figures
 % Short figure 1
@@ -293,23 +317,37 @@ while length(cols_ssd) < 6
     cols_ssd{length(cols_ssd)+1} = cols{2};
 end
 
-short_stacked_data = {rho_overlap{1}, rho_distant{1}, rho_overlap{2}, rho_distant{2}, rho_overlap{5}, rho_distant{5}};
+short_stacked_data = {rho_overlap{id_presleep}, rho_distant{id_presleep},...
+    rho_overlap{id_task}, rho_distant{id_task}, rho_overlap{id_postsleep}, rho_distant{id_postsleep}};
 ssp = MakeBoxPlot_DB(short_stacked_data, cols_ssd, [1 2 4 5 7 8], [], 0);
-set(gca,'Xtick',1.5:3:7.5,'XtickLabel',{'PreSleep', 'NoStimTask', 'PostSleep'})
+set(gca,'Xtick',1.5:3:7.5,'XtickLabel',{'PreSleep', 'Task', 'PostSleep'})
 ylabel('Corellation')
 title('Pairwise correlations');
+ylim([-.1 .3])
 legend([ssp{1}.handles.box, ssp{2}.handles.box], {'Overlapping PCs', 'Non-overlapping PCs'});
 makepretty
 % Save the figure
 if savfig
-    saveas(f1,[foldertosave filesep 'Pairwise_Small.fig']);
-    saveFigure(f1,'Pairwise_Small', foldertosave);
+    if exist([foldertosave filesep 'Pairwise'], 'dir') ~= 7
+        mkdir([foldertosave filesep 'Pairwise']);
+    end
+    saveas(f1,[foldertosave filesep 'Pairwise' filesep 'Pairwise_Small_' experiment '.fig']);
+    saveFigure(f1,['Pairwise_Small_' experiment], [foldertosave filesep 'Pairwise']);
 end
 
 % Final figures for Karim
 % Reorganize data a bit (PreSleep-PostSleep-Maze-CondMov-CondFreeze-PostTests)
-largefig_data{1} = {rho_overlap{1}, rho_overlap{5}, rho_overlap{2}, rho_overlap{3}, rho_overlap{4}, rho_overlap{6}};
-largefig_data{2} = {rho_distant{1}, rho_distant{5}, rho_distant{2}, rho_distant{3}, rho_distant{4}, rho_distant{6}};
+if strcmp(experiment, 'PAG')
+    largefig_data{1} = {rho_overlap{id_presleep}, rho_overlap{id_postsleep}, rho_overlap{id_task},...
+        rho_overlap{id_condmov}, rho_overlap{id_condfre}, rho_overlap{id_post}};
+    largefig_data{2} = {rho_distant{id_presleep}, rho_distant{id_postsleep}, rho_distant{id_task},...
+        rho_distant{id_condmov}, rho_distant{id_condfre}, rho_distant{id_post}};
+elseif strcmp(experiment, 'MFB')
+    largefig_data{1} = {rho_overlap{id_presleep}, rho_overlap{id_postsleep}, rho_overlap{id_task},...
+        rho_overlap{id_condmov}, rho_overlap{id_post}};
+    largefig_data{2} = {rho_distant{id_presleep}, rho_distant{id_postsleep}, rho_distant{id_task},...
+        rho_distant{id_condmov}, rho_distant{id_post}};
+end
 pairs_toCompare = {[1 2], [1 3], [2 3]};
 
 % Big figure
@@ -324,7 +362,12 @@ end
 for iaxis = 1:length(ax)
     axes(ax{iaxis});
     MakeBoxPlot_DB(largefig_data{iaxis}, cols_lf{iaxis}, 1:length(states), [], 0);
-    set(gca,'Xtick', 1:6, 'XtickLabel',{'PreSleep', 'PostSleep', 'NoStimTask', 'StimRun', 'StimFreeze', 'PostTest'})
+    if strcmp(experiment, 'PAG')
+        set(gca,'Xtick', 1:length(states), 'XtickLabel',{'PreSleep', 'PostSleep', 'Task', 'StimRun',...
+            'StimFreeze', 'PostTest'})
+    elseif strcmp(experiment, 'MFB')
+        set(gca,'Xtick', 1:length(states), 'XtickLabel',{'PreSleep', 'PostSleep', 'Task', 'StimRun', 'PostTest'})
+    end
     ylabel('Correlation', 'FontSize', 18)
     title(titles{iaxis});
     p = DoWilcoxonOnArray(largefig_data{iaxis}, pairs_toCompare);
@@ -341,13 +384,16 @@ for iaxis = 1:length(ax)
     ylim(ylims_out);
 end
 if savfig
-    saveas(f2,[foldertosave filsep 'Pairwise_final_big.fig']);
-    saveFigure(f2,'Pairwise_final_big', foldertosave);
+    if exist([foldertosave filesep 'Pairwise'], 'dir') ~= 7
+        mkdir([foldertosave filesep 'Pairwise']);
+    end
+    saveas(f2,[foldertosave filesep 'Pairwise' filesep 'Pairwise_final_big_' experiment '.fig']);
+    saveFigure(f2,['Pairwise_final_big_' experiment], [foldertosave filesep 'Pairwise']);
 end
 
 % Short figure 2
-shortfig_data{1} = {rho_overlap{1}, rho_overlap{2}, rho_overlap{5}};
-shortfig_data{2} = {rho_distant{1}, rho_distant{2}, rho_distant{5}};
+shortfig_data{1} = {rho_overlap{id_presleep}, rho_overlap{id_task}, rho_overlap{id_postsleep}};
+shortfig_data{2} = {rho_distant{id_presleep}, rho_distant{id_task}, rho_distant{id_postsleep}};
 
 f3 = figure('units', 'normalized', 'outerposition', [0.1 0.15 0.5 0.7]);
 ax{1} = axes('position', [0.05 0.05 0.43 0.9]);
@@ -358,7 +404,7 @@ end
 for iaxis = 1:length(ax)
     axes(ax{iaxis});
     MakeBoxPlot_DB(shortfig_data{iaxis}, cols_sf{iaxis}, 1:3, [], 0);
-    set(gca,'Xtick', 1:3, 'XtickLabel',{'PreSleep', 'NoStimTask', 'PostSleep'})
+    set(gca,'Xtick', 1:3, 'XtickLabel',{'PreSleep', 'Task', 'PostSleep'})
     ylabel('Correlation', 'FontSize', 18)
     title(titles{iaxis});
     p = DoWilcoxonOnArray(shortfig_data{iaxis}, pairs_toCompare);
@@ -375,14 +421,17 @@ for iaxis = 1:length(ax)
     ylim(ylims_out);
 end
 if savfig
-    saveas(f3,[foldertosave filesep 'Pairwise_final_small.fig']);
-    saveFigure(f3,'Pairwise_final_small', foldertosave);
+    if exist([foldertosave filesep 'Pairwise'], 'dir') ~= 7
+        mkdir([foldertosave filesep 'Pairwise']);
+    end
+    saveas(f3,[foldertosave filesep 'Pairwise' filesep 'Pairwise_final_small_' experiment '.fig']);
+    saveFigure(f3,['Pairwise_final_small_' experiment], [foldertosave filesep 'Pairwise']);
 end
 
 % Only overlapping cells
 f4 = figure('units', 'normalized', 'outerposition', [0.3 0.2 0.285 0.7]);
 MakeBoxPlot_DB(shortfig_data{1}, cols_sf{1}, 1:3, [], 0);
-set(gca,'Xtick', 1:3, 'XtickLabel',{'PreSleep', 'NoStimTask', 'PostSleep'})
+set(gca,'Xtick', 1:3, 'XtickLabel',{'PreSleep', 'Task', 'PostSleep'})
 ylabel('Correlation', 'FontSize', 18)
 p = DoWilcoxonOnArray(shortfig_data{1}, pairs_toCompare);
 for ip = 1:length(p)
@@ -392,8 +441,11 @@ for ip = 1:length(p)
 end
 makepretty
 if savfig
-    saveas(f4,[foldertosave filesep 'Pairwise_fullfinal_pooled.fig']);
-    saveFigure(f4,'Pairwise_fullfinal_pooled', foldertosave);
+    if exist([foldertosave filesep 'Pairwise'], 'dir') ~= 7
+        mkdir([foldertosave filesep 'Pairwise']);
+    end
+    saveas(f4,[foldertosave filesep 'Pairwise' filesep 'Pairwise_fullfinal_pooled_' experiment '.fig']);
+    saveFigure(f4,['Pairwise_fullfinal_pooled_'  experiment], [foldertosave filesep 'Pairwise']);
 end
 
 

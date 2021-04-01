@@ -59,10 +59,20 @@ load('MeanWaveform');
 load('ExpeInfo.mat');
 
 % Response to ripples
-load('Ripples.mat');
+if exist('SWR.mat', 'file') == 2
+    load('SWR.mat');
+else
+    load('Ripples.mat');
+end
 
 % Different states
-load('SleepScoring_Accelero.mat','Wake', 'SWSEpoch', 'REMEpoch');
+if exist('SleepScoring_OBGamma.mat', 'file') == 2
+    load('SleepScoring_OBGamma.mat','Wake', 'SWSEpoch', 'REMEpoch');
+elseif exist('SleepScoring_Accelero.mat', 'file') == 2
+    load('SleepScoring_Accelero.mat','Wake', 'SWSEpoch', 'REMEpoch');
+else
+    error('Sleep score your data first')
+end
 
 % Modulation theta
 if exist('ChannelsToAnalyse/dHPC_deep.mat','file')==2
@@ -143,6 +153,8 @@ if exist('NeuronClassification.mat')~=2
     saveas(figid,'NeuronClasses.fig');
     saveFigure(figid,'NeuronClasses',pwd);
     close(figid);
+else
+    load('NeuronClassification.mat', 'UnitID');
 end
 
 % Calculate theta modulation for each unit
