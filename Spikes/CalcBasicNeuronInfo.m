@@ -148,7 +148,7 @@ for j=1:length(S)
 end
 % Classify neurons in INT and PYR
 if exist('NeuronClassification.mat')~=2
-    [UnitID,AllParamsNew,WFInfo,BestElec,figid] = MakeData_ClassifySpikeWaveforms(W,'/home/mobsrick/Dropbox/Kteam/',1);
+    [UnitID,~,~,~,figid] = ClassifyHippocampalWaveforms(W, S, LFP_hpc.LFP, [dropbox filesep 'Kteam'],1);
     set(gcf, 'units', 'normalized', 'outerposition', [0 0 1 1]);
     saveas(figid,'NeuronClasses.fig');
     saveFigure(figid,'NeuronClasses',pwd);
