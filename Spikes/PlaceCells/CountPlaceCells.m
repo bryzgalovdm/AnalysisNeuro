@@ -30,14 +30,16 @@ end
 numPCs = 0;
 numperM = zeros(1, length(Dir.path));
 for j=1:length(Dir.path)
-    
-    % Get the data
-    cd(Dir.path{j}{1});
-    load('SpikeData.mat','PlaceCells');
-    if isfield(PlaceCells,'idx')
-        numPCs = numPCs + length(PlaceCells.idx);
-        numperM(j) = length(PlaceCells.idx);
-        clear PlaceCells
+    for k=1:length(Dir.path{i})
+        
+        % Get the data
+        cd(Dir.path{j}{k});
+        load('SpikeData.mat','PlaceCells');
+        if isfield(PlaceCells,'idx')
+            numPCs = numPCs + length(PlaceCells.idx);
+            numperM(j) = length(PlaceCells.idx);
+            clear PlaceCells
+        end
     end
 end
 

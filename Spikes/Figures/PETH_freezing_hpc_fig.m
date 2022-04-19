@@ -34,7 +34,7 @@ IsSaveFile = 0;
 Redo = 0;
 IsCalcAdditional = 0;
 
-mice = [797 798 828 861 882 905 906 911 912 977 994 1117 1124 1161 1162 1168 1182];
+mice = [797 798 828 861 882 905 906 911 912 977 994 1117 1124 1161 1162 1168 1182 1186 1199];
 
 wi = 2; % in sec
 binsize = 0.05; % in sec
@@ -85,34 +85,52 @@ if Redo
     FreezeEpoch = cell(length(Dir.path),1);
     Neurons = cell(length(Dir.path),1);
     PlaceCells = nan(5e4,1);
+    PlaceCells_SZ = nan(5e4,1);
     SpInfo = zeros(5e4,1);
     FR = nan(5e4,1);
     NeuronClass = nan(5e4,1);
+    kappa_theta = nan(5e4,1);
+    kappa4Hz = nan(5e4,1);
+    pval_theta = nan(5e4,1);
+    pval4Hz = nan(5e4,1);    
     
     for imouse = 1:length(Dir.path)
         b{imouse} = load([Dir.path{imouse}{1} '/behavResources.mat'], 'SessionEpoch', 'FreezeAccEpoch', 'MovAcctsd', ...
-            'CleanAlignedXtsd', 'CleanAlignedYtsd', 'CleanVtsd');
-        s{imouse} = load([Dir.path{imouse}{1} '/SpikeData.mat'], 'S', 'BasicNeuronInfo', 'PlaceCells');
+            'AlignedXtsd', 'AlignedYtsd', 'Vtsd', 'TTLInfo');
+        s{imouse} = load([Dir.path{imouse}{1} '/SpikeData.mat'], 'S', 'BasicNeuronInfo', 'PlaceCells', 'TT', 'RippleGroups');
     end
     
     %% Organize epochs and data
     % Epochs
     for imouse = 1:length(Dir.path)
-        [~, ~, CondEpoch{imouse}] = ReturnMnemozyneEpochs(b{imouse}.SessionEpoch);
-        [~, UMazeEpoch{imouse}] = ReturnMnemozyneEpochs(b{imouse}.SessionEpoch,...
-            'Speed', b{i}.CleanVtsd, 'SpeedThresh', speed_thresh);
+        [~, ~, ~, CondEpoch{imouse}] = ReturnMnemozyneEpochs(b{imouse}.SessionEpoch);
+        [~, ~, UMazeEpoch{imouse}] = ReturnMnemozyneEpochs(b{imouse}.SessionEpoch,...
+            'Speed', b{i}.Vtsd, 'SpeedThresh', speed_thresh);
         
         FreezeEpoch{imouse} = and(b{imouse}.FreezeAccEpoch,CondEpoch{imouse});
         FreezeEpoch{imouse} = dropShortIntervals(FreezeEpoch{imouse}, 4*1E4);
         FreezeEpoch{imouse} = mergeCloseIntervals(FreezeEpoch{imouse},1*1E4);
+        % Remove epochs co-terminated with stims
+        stims = ts(Start(b{imouse}.TTLInfo.StimEpoch));
+        stims = Restrict(stims, CondEpoch{imouse});
+        stims = intervalSet(Range(stims), Range(stims)+100);
+        FreezeEpoch{imouse} = GetStandaloneFreezeEpochs(FreezeEpoch{imouse}, stims, 2.5);
+        
     end
+    
+    
+    
     % Data
     for imouse = 1:length(Dir.path)
-        Neurons{imouse} = cell(length(s{imouse}.S),1);
-        Q = MakeQfromS(s{imouse}.S, binsize*1e4);
+        % Get cells from pyramidal layer
+        id_ripples = PyramLayerSorting(s{imouse}.RippleGroups, s{imouse}.TT);
+        selected_cells{imouse} = s{imouse}.S(id_ripples);
+        
+        Neurons{imouse} = cell(length(selected_cells{imouse}),1);
+        Q = MakeQfromS(selected_cells{imouse}, binsize*1e4);
         time = Restrict(Q, CondEpoch{imouse});
         tempdat = zscore(full(Data(Restrict(Q, CondEpoch{imouse}))));
-        for icell = 1:length(s{imouse}.S)
+        for icell = 1:length(selected_cells{imouse})
             Neurons{imouse}{icell} = [Range(time)/1e4 tempdat(:,icell)];
         end
     end
@@ -147,10 +165,27 @@ if Redo
                 else
                     PlaceCells(cnt) = false;
                 end
+                if sum(s{imouse}.PlaceCells.SZ == icell) > 0
+                    PlaceCells_SZ(cnt) = true;
+                else
+                    PlaceCells_SZ(cnt) = false;
+                end
                 % Firing rate
                 FR(cnt) = s{imouse}.BasicNeuronInfo.firingrate(icell);
                 % Neuron class
                 NeuronClass(cnt) = s{imouse}.BasicNeuronInfo.neuroclass(icell);
+                % Theta kappa
+                kappa_theta(cnt) = s{imouse}.BasicNeuronInfo.kappatheta.Transf(icell);
+                % 4Hz kappa
+                if isfield(s{imouse}.BasicNeuronInfo, 'kappa4Hz')
+                    kappa4Hz(cnt) = s{imouse}.BasicNeuronInfo.kappa4Hz.Transf(icell);
+                end
+                % Theta pval
+                pval_theta(cnt) = s{imouse}.BasicNeuronInfo.pvaltheta.Transf(icell);
+                % 4Hz pval
+                if isfield(s{imouse}.BasicNeuronInfo, 'pval4Hz')
+                    pval4Hz(cnt) = s{imouse}.BasicNeuronInfo.pval4Hz.Transf(icell);
+                end
             end
             
             cnt = cnt + 1;
@@ -162,8 +197,14 @@ if Redo
     if IsCalcAdditional
         SpInfo = nonzeros(SpInfo);
         PlaceCells(isnan(PlaceCells)) = [];
+        PlaceCells_SZ(isnan(PlaceCells_SZ)) = [];
         FR(isnan(FR)) = [];
+        ids_all = length(FR);
         NeuronClass(isnan(NeuronClass)) = [];
+        kappa_theta(ids_all+1:end) = [];
+        kappa4Hz(ids_all+1:end) = [];
+        pval_theta(isnan(pval_theta)) = [];
+        pval4Hz(ids_all+1:end) = [];
     end
     % Create data
     DatNormZ = [OnResp,OffResp];
@@ -184,32 +225,37 @@ else
 end
 
 %% Plot figure
-f1 = figure('units', 'normalized', 'outerposition', [0.1 0.3 0.4 0.8]);
+f1 = figure('units', 'normalized', 'outerposition', [0.1 0.3 0.35 0.85]);
 SustVal = nanmean(DatNormZ(:,60:100),2);
 % SustVal = nanmean(DatNormZ(:,121:141),2);
 % SustVal = nanmean(DatNormZ(:,40:120),2)./abs(nanmean(DatNormZ(:,121:141),2));
 UseForTresh = SustVal;
 [~,ind_sort] = sort(UseForTresh);
-subplot(4,1,1:3)
+subplot(3,1,1:2)
 imagesc(-2:0.05:6,1:size(DatNormZ,1),DatNormZ(ind_sort,:))
 caxis([-0.45 0.45])
-line([0 0],ylim,'color','k')
-line([4 4],ylim,'color','k')
-line(xlim, [100 100], 'Color','w', 'LineStyle', '--', 'LineWidth', 3);
-line(xlim, [600 600], 'Color', 'w', 'LineStyle', '--', 'LineWidth', 3)
+set(gca, 'XTick', [-2 -1 0 1.5 2.5 4 5 6], 'XTickLabels',...
+    {'-2', '-1', '0', '1.5', '-1.5', '0', '1', '2'});
+line([0 0],ylim,'color',[.9856, .7372, .2537])
+line([4 4],ylim,'color','m')
+line(xlim, [90 90], 'Color','w', 'LineStyle', '--', 'LineWidth', 3);
+line(xlim, [630 630], 'Color', 'w', 'LineStyle', '--', 'LineWidth', 3)
 makepretty
 ylabel('Neuron #')
-xlabel('Time to freeze on (s)')
+% xlabel('Time to freeze on (s)                        Time to freeze off (s)')
+
 % Accelero meter
-subplot(4,1,4)
+subplot(3,1,3)
 if size(Accelero,1) > 1
     shadedErrorBar(time,mean(Accelero, 1), std(Accelero, 1), 'k')
 else
     plot(time,Accelero,'color','k')
 end
+set(gca, 'XTick', [-2 -1 0 1.5 2.5 4 5 6], 'XTickLabels',...
+    {'-2', '-1', '0', '1.5', '-1.5', '0', '1', '2'});
 makepretty
 ylabel('Accelero')
-xlabel('Time to freeze on (s)')
+% xlabel('Time to freeze on (s)')
 
 % Save figure
 if IsSaveFig
@@ -236,18 +282,20 @@ makepretty
 
 %% Groups mean
 group_data = DatNormZ(ind_sort,:);
-group_data = {group_data(1:100,:), group_data(101:599,:), group_data(600:end,:)};
+group_data = {group_data(1:70,:), group_data(711:729,:), group_data(730:end,:)};
 titles = {'OFF on freezing', 'Not affected', 'ON on freezing'};
 f3 = figure('units', 'normalized', 'outerposition', [0 0 0.4 1]);
 for igroup = 1:length(group_data)
     subplot(3,1,igroup)
     plot(-2.05:0.05:6, mean(group_data{igroup}), 'Color', 'k');
     xlim([-2 6])
-    ylim([-0.25 0.2]) 
+    ylim([-0.25 0.3]) 
     line([0 0],ylim,'color',[.9856, .7372, .2537])
     line([4 4],ylim,'color','m')
+    set(gca, 'XTick', [-2 -1 0 1.5 2.5 4 5 6], 'XTickLabels',...
+    {'-2', '-1', '0', '1.5', '-1.5', '0', '1', '2'});
     ylabel('Firing zscored')
-    xlabel('Time to freeze on (s)')
+%     xlabel('Time to freeze on (s)')
     title(titles{igroup});
     makepretty
 end
@@ -265,11 +313,13 @@ for ipc = 1:3
     subplot(3,1,ipc)
     plot(-2.05:0.05:6, sc(:, ipc), 'Color', 'k');
     xlim([-2 6])
-    ylim([-2 4.5])
+    ylim([-2.5 4.5])
     line([0 0],ylim,'color',[.9856, .7372, .2537])
     line([4 4],ylim,'color','m')
+    set(gca, 'XTick', [-2 -1 0 1.5 2.5 4 5 6], 'XTickLabels',...
+    {'-2', '-1', '0', '1.5', '-1.5', '0', '1', '2'});
     ylabel(['PC#' num2str(ipc)])
-    xlabel('Time to freeze on (s)')
+%     xlabel('Time to freeze on (s)')
     title(['PC#' num2str(ipc) ', ' num2str(round(explained(ipc),1)) '% of data explained']);
     makepretty
 end
@@ -285,29 +335,83 @@ if (Redo && IsCalcAdditional) || (~Redo && exist('PlaceCells', 'var'))
     SpInfo_sorted = SpInfo(ind_sort);
     FR_sorted = FR(ind_sort);
     PlaceCells_sorted = PlaceCells(ind_sort);
+    PlaceCellsSZ_sorted = PlaceCells_SZ(ind_sort);
     NeuronClass_sorted = NeuronClass(ind_sort);
+    kappa_theta_sorted = kappa_theta(ind_sort);
+    kappa4Hz_sorted = kappa4Hz(ind_sort);
+    pval_theta_sorted = pval_theta(ind_sort);
+    pval4Hz_sorted = pval4Hz(ind_sort);
     
     % Figures specs
     cols = {[0.2 0.2 0.8], [.6 .6 .6], [.8 .2 .2]};
     legs = {'OFF', '~~', 'ON'};
     
     f5 = figure('units', 'normalized', 'outerposition', [0 0 1 0.5]);
-    subplot(141)
-    MakeBoxPlot_DB({SpInfo_sorted(1:100), SpInfo_sorted(101:599), SpInfo_sorted(600:end)}, cols, 1:3, legs, 0);
-    ylabel('Spati0al info')
+    subplot(161)
+    MakeBoxPlot_DB({SpInfo_sorted(1:70), SpInfo_sorted(71:729), SpInfo_sorted(730:end)}, cols, 1:3, legs, 0);
+    ylabel('Spatial info')
+    title('Spatial information')
     makepretty
-    subplot(142)
-    MakeBoxPlot_DB({PlaceCells_sorted(1:100), PlaceCells_sorted(101:599), PlaceCells_sorted(600:end)}, cols, 1:3, legs, 1);
-    set(gca, 'YTick', [0 1], 'YTickLabel', {'NOT a PC', 'PC'})
+    subplot(162)
+    PlaceCells_OFF = PlaceCells_sorted(1:70);
+    PlaceCells_N = PlaceCells_sorted(71:729);
+    PlaceCells_ON = PlaceCells_sorted(730:end);
+    PC_perc = [sum(PlaceCells_OFF==1)/length(PlaceCells_OFF)*100 sum(PlaceCells_N==1)/length(PlaceCells_N)*100 ...
+        sum(PlaceCells_ON==1)/length(PlaceCells_ON)*100];
+    [~,h] = PlotErrorBarN_DB(PC_perc, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of place cells in subpop')
+    title('Place cells')
     makepretty
-    subplot(143)
-    MakeBoxPlot_DB({FR_sorted(1:100), FR_sorted(101:599), FR_sorted(600:end)}, cols, 1:3, legs, 0);
+    subplot(163)
+    PlaceCells_OFF = PlaceCells_sorted(1:70);
+    PlaceCells_N = PlaceCells_sorted(71:729);
+    PlaceCells_ON = PlaceCells_sorted(730:end);
+    PC_perc = [sum(PlaceCells_OFF==1)/sum(PlaceCells)*100 sum(PlaceCells_N==1)/sum(PlaceCells)*100 ...
+        sum(PlaceCells_ON==1)/sum(PlaceCells)*100];
+    [~,h] = PlotErrorBarN_DB(PC_perc, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of place cells in subpop of all place cells')
+    title('Place cells')
+    makepretty
+    subplot(164)
+    PlaceCellsSZ_OFF = PlaceCellsSZ_sorted(1:70);
+    PlaceCellsSZ_N = PlaceCellsSZ_sorted(71:729);
+    PlaceCellsSZ_ON = PlaceCellsSZ_sorted(730:end);
+    PC_percSZ = [sum(PlaceCellsSZ_OFF==1)/sum(PlaceCells_SZ)*100 sum(PlaceCellsSZ_N==1)/sum(PlaceCells_SZ)*100 ...
+        sum(PlaceCellsSZ_ON==1)/sum(PlaceCells_SZ)*100];
+    [~,h] = PlotErrorBarN_DB(PC_percSZ, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of SZ place cells in subpop of all place cells')
+    title('SZ Place cells')
+    makepretty
+    subplot(165)
+    MakeBoxPlot_DB({FR_sorted(1:70), FR_sorted(71:729), FR_sorted(730:end)}, cols, 1:3, legs, 0);
     ylabel('Firing rate (Hz)')
+    title('Firing rate')
     makepretty
-    subplot(144)
-    t = MakeBoxPlot_DB({NeuronClass_sorted(1:100), NeuronClass_sorted(101:599), NeuronClass_sorted(600:end)}, cols, 1:3, legs, 1);
-    t{1}.handles.box.Visible = 'off';
-    set(gca, 'YTick', [-1 1], 'YTickLabel', {'Interneuron', 'Principal'})
+    subplot(166)
+    NeuronClass_OFF = NeuronClass_sorted(1:70);
+    NeuronClass_N = NeuronClass_sorted(71:729);
+    NeuronClass_ON = NeuronClass_sorted(730:end);
+    Int_perc = [sum(NeuronClass_OFF<0)/length(NeuronClass_OFF)*100 sum(NeuronClass_N<0)/length(NeuronClass_N)*100 ...
+        sum(NeuronClass_ON<0)/length(NeuronClass_ON)*100];
+    [~,h] = PlotErrorBarN_DB(Int_perc, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of interneurons in subpop')
+    title('Neuron class')
     makepretty
     
     if IsSaveFig
@@ -315,6 +419,79 @@ if (Redo && IsCalcAdditional) || (~Redo && exist('PlaceCells', 'var'))
         saveas(f5,[foldertosave '/Freezing/Freezing_hpc_group_props.fig']);
         saveFigure(f5, 'Freezing_hpc_group_props', [foldertosave '/Freezing/']);
     end
+
+    f6 = figure('units', 'normalized', 'outerposition', [0 0 0.6 0.5]);
+    subplot(121)
+    MakeBoxPlot_DB({FR_sorted(1:70), FR_sorted(71:729), FR_sorted(730:end)}, cols, 1:3, legs, 0);
+    ylabel('Firing rate (Hz)')
+    title('Firing rate')
+    makepretty
+    subplot(122)
+    NeuronClass_OFF = NeuronClass_sorted(1:70);
+    NeuronClass_N = NeuronClass_sorted(71:729);
+    NeuronClass_ON = NeuronClass_sorted(730:end);
+    Int_perc = [sum(NeuronClass_OFF<0)/length(NeuronClass_OFF)*100 sum(NeuronClass_N<0)/length(NeuronClass_N)*100 ...
+        sum(NeuronClass_ON<0)/length(NeuronClass_ON)*100];
+    [~,h] = PlotErrorBarN_DB(Int_perc, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of interneurons in subpop')
+    title('Neuron class')
+    makepretty
+
+    if IsSaveFig
+        foldertosave = ChooseFolderForFigures_DB('Spikes');
+        saveas(f6,[foldertosave '/Freezing/Freezing_hpc_group_props_short.fig']);
+        saveFigure(f6, 'Freezing_hpc_group_props_short', [foldertosave '/Freezing/']);
+    end
+    
+    f7 = figure('units', 'normalized', 'outerposition', [0 0 1 0.5]);
+    subplot(141)
+    MakeBoxPlot_DB({kappa_theta_sorted(1:70), kappa_theta_sorted(71:729), kappa_theta_sorted(730:end)}, cols, 1:3, legs, 0);
+    ylabel('Kappa theta')
+    title('Kappa theta')
+    makepretty
+    subplot(142)
+    MakeBoxPlot_DB({kappa4Hz_sorted(1:70), kappa4Hz_sorted(71:729), kappa4Hz_sorted(730:end)}, cols, 1:3, legs, 0);
+    ylabel('Kappa 4Hz')
+    title('Kappa 4Hz')
+    makepretty
+    subplot(143)
+    pval_theta_OFF = pval_theta_sorted(1:70);
+    pval_theta_N = pval_theta_sorted(71:729);
+    pval_theta_ON = pval_theta_sorted(730:end);
+    Int_perc = [sum(pval_theta_OFF<0.05)/length(pval_theta_OFF)*100 sum(pval_theta_N<0.05)/length(pval_theta_N)*100 ...
+        sum(pval_theta_ON<0.05)/length(pval_theta_ON)*100];
+    [~,h] = PlotErrorBarN_DB(Int_perc, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of cell sign. modulated by theta')
+    title('Theta modulation')
+    makepretty
+    subplot(144)
+    pval4Hz_OFF = pval4Hz_sorted(1:70);
+    pval4Hz_N = pval4Hz_sorted(71:729);
+    pval4Hz_ON = pval4Hz_sorted(730:end);
+    Int_perc = [sum(pval4Hz_OFF<0.05)/length(pval4Hz_OFF)*100 sum(pval4Hz_N<0.05)/length(pval4Hz_N)*100 ...
+        sum(pval4Hz_ON<0.05)/length(pval4Hz_ON)*100];
+    [~,h] = PlotErrorBarN_DB(Int_perc, 'barcolors', [1 0 0], 'barwidth', 0.6, 'newfig', 0, 'showpoints', 0);
+    h.FaceColor = 'flat';
+    h.CData(1,:) = [0 0 1];
+    h.CData(2,:) = [.8 .8 .8];
+    set(gca, 'XTick', 1:3, 'XTickLabels', {'OFF', '~~', 'ON'});
+    ylabel('% of cell sign. modulated by 4Hz')
+    title('4Hz modulation')
+    makepretty
+    if IsSaveFig
+        foldertosave = ChooseFolderForFigures_DB('Spikes');
+        saveas(f7,[foldertosave '/Freezing/Freezing_hpc_group_spectralmod.fig']);
+        saveFigure(f7, 'Freezing_hpc_group_spectralmod', [foldertosave '/Freezing/']);
+    end
+
 end
 %% SaveFile
 if IsSaveFile

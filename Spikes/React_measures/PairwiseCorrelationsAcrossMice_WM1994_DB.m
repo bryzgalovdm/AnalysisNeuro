@@ -144,7 +144,7 @@ end
 
 for i=1:length(Dir.path)
     spikes{i} = load([Dir.path{i}{1} 'SpikeData.mat'],'S','PlaceCells');
-    behav{i} = load([Dir.path{i}{1} 'behavResources.mat'],'SessionEpoch','CleanVtsd','CleanXtsd','CleanYtsd','FreezeAccEpoch');
+    behav{i} = load([Dir.path{i}{1} 'behavResources.mat'],'SessionEpoch','Vtsd','AlignedXtsd','AlignedYtsd','FreezeAccEpoch');
     try
         sleep{i} = load([Dir.path{i}{1} 'SleepScoring_OBGamma.mat'],'SWSEpoch','REMEpoch','Sleep');
     catch
@@ -156,7 +156,7 @@ end
 for i=1:length(Dir.path)
     
     [~, UMazeEpoch{i}, ConditioningEpoch, TaskEpoch, AfterConditioningEpoch] = ReturnMnemozyneEpochs(behav{i}.SessionEpoch,...
-        'Speed', behav{i}.CleanVtsd, 'SpeedThresh', speed_thresh);
+        'Speed', behav{i}.Vtsd, 'SpeedThresh', speed_thresh);
     
     % Get freezing epoch during cond
     if strcmp(experiment, 'PAG')
@@ -210,7 +210,7 @@ for i=1:length(Dir.path)
             
             S_PC{i} = spikes{i}.S(spikes{i}.PlaceCells.idx);
             
-            [overlappairs{i}, distantpairs{i}] = FindOverlappingPlaceFields(S_PC{i}, behav{i}.CleanXtsd, behav{i}.CleanYtsd,...
+            [overlappairs{i}, distantpairs{i}] = FindOverlappingPlaceFields(S_PC{i}, behav{i}.AlignedXtsd, behav{i}.AlignedYtsd,...
                 UMazeEpoch{i}, overlapFactor);
             
         else
@@ -261,7 +261,7 @@ for i=1:length(Dir.path)
             end
         end
         
-    else % do_as_in_paper
+    else % do_as_in_paperjh
         % Perform calculations - overlapping cells
         if ~isempty(overlappairs{i})
             for j=1:length(overlappairs{i})

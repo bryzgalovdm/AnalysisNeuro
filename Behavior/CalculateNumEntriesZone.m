@@ -14,13 +14,22 @@ function NumEntries = CalculateNumEntriesZone(behavResources_slice)
 % 04/11/2020
 % github.com/bryzgalovdm
 
-NumEntries = zeros(length(behavResources_slice.CleanZoneIndices), 1);
+% load('E:\ERC_data\M905R\Retracking\TestPost\TestPost4\behavResources_Offline');
+% NumEntries = zeros(length(ZoneEpoch), 1);
+% for izone = 1:length(ZoneEpoch)
+%     if ~isempty(ZoneEpoch{izone})
+%         preparedepoch = mergeCloseIntervals(ZoneEpoch{izone}, 2e4); % 2s
+%         NumEntries(izone) = length(Start(preparedepoch));
+%     end
+% end
 
-for izone = 1:length(behavResources_slice.CleanZoneIndices)
-    if ~isempty(behavResources_slice.CleanZoneIndices{izone})
-        NumEntries(izone) = length(find(diff(behavResources_slice.CleanZoneIndices{izone})>1))+1;
+NumEntries = zeros(length(behavResources_slice.ZoneEpoch), 1);
+
+for izone = 1:length(behavResources_slice.ZoneEpoch)
+    if ~isempty(behavResources_slice.ZoneEpoch{izone})
+        preparedepoch = mergeCloseIntervals(behavResources_slice.ZoneEpoch{izone}, 2e4); % 2s
+        NumEntries(izone) = length(Start(preparedepoch));
     end
 end
-
 
 end

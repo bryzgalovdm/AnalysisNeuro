@@ -1,6 +1,19 @@
 function ReDefineZones_DB(directories)
+%
+% It gives you the GUI to re-define the zones for the UMaze
+%
+% INPUT
+%
+%   directories         paths with behavResources.mat
+%
+% OUTPUT
+%
+%
+% By Dima Bryzgalov, MOBS team, Paris
+% 09/2021
+% github.com/bryzgalovdm
 
-
+%%
 for idir = 1:length(directories)
     cd(directories{idir});
     

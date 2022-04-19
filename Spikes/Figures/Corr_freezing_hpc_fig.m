@@ -1,13 +1,20 @@
 clear all
+%
+% Correlation matrix for neuronal activity during freeezing (PAG ERC)
+%
+
+% Coded by Dima Bryzgalov and Samuel Laventure, MOBS team, Paris, France
+% 03/2021
+% github.com/bryzgalovdm
 
 %% Parameters
-IsSave=0;
-mice = [797 798 828 861 882 905 906 911 912 977 994 1117 1124 1161 1162 1168];
+IsSave=1;
+mice = [797 798 828 861 882 905 906 911 912 977 994 1117 1124 1161 1162 1168 1182 1186 1199];
 % mice = [994];
 wi = 2; % in sec
 binsize = 0.05; % in sec
 nbins = 81;
-timeatTransition = 3;
+timeatTransition = 3; % in sec
 tps=[0.05:0.05:1];
 
 %% Get data
@@ -22,20 +29,26 @@ FreezeEpoch = cell(length(Dir.path),1);
 Neurons = cell(length(Dir.path),1);
 
 for imouse = 1:length(Dir.path)
-    b{imouse} = load([Dir.path{imouse}{1} '/behavResources.mat'], 'SessionEpoch', 'FreezeAccEpoch', 'MovAcctsd');
+    b{imouse} = load([Dir.path{imouse}{1} '/behavResources.mat'], 'SessionEpoch', 'FreezeAccEpoch', 'MovAcctsd', 'TTLInfo');
     s{imouse} = load([Dir.path{imouse}{1} '/SpikeData.mat'], 'S', 'BasicNeuronInfo', 'PlaceCells');
 end
 
 %% Organize epochs and data
 % Epochs
 for imouse = 1:length(Dir.path)
-    [~, ~, CondEpoch{imouse}] = ReturnMnemozyneEpochs(b{imouse}.SessionEpoch);
+    [~, ~, ~, CondEpoch{imouse}] = ReturnMnemozyneEpochs(b{imouse}.SessionEpoch);
     
     
     % Preprocess freezing: remove short epochs and badly separated epochs
     FreezeEpoch{imouse} = and(b{imouse}.FreezeAccEpoch,CondEpoch{imouse});
     FreezeEpoch{imouse} = dropShortIntervals(FreezeEpoch{imouse}, 4*1E4);
-    FreezeEpoch{imouse} = mergeCloseIntervals(FreezeEpoch{imouse},1*1E4);    
+    FreezeEpoch{imouse} = mergeCloseIntervals(FreezeEpoch{imouse},1*1E4);
+    % Remove epochs co-terminated with stims
+    stims = ts(Start(b{imouse}.TTLInfo.StimEpoch));
+    stims = Restrict(stims, CondEpoch{imouse});
+    stims = intervalSet(Range(stims), Range(stims)+100);
+    FreezeEpoch{imouse} = GetStandaloneFreezeEpochs(FreezeEpoch{imouse}, stims, 2.5);
+    
     for fr_ep=1:length(Start(FreezeEpoch{imouse}))
         LitEp=subset(FreezeEpoch{imouse},fr_ep);
         NotLitEp=FreezeEpoch{imouse}-LitEp;
@@ -115,6 +128,6 @@ makepretty
 % Save figure
 if IsSave
     foldertosave = ChooseFolderForFigures_DB('Spikes');
-    saveas(f1,[foldertosave '/CorrFreezing_hpc.fig']);
-    saveFigure(f1, 'CorrFreezing_hpc', foldertosave);
+    saveas(f1,[foldertosave '/Freezing/CorrFreezing_hpc.fig']);
+    saveFigure(f1, 'CorrFreezing_hpc', [foldertosave '/Freezing/']);
 end

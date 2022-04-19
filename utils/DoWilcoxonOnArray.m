@@ -1,3 +1,4 @@
+
 function [pvalues, pairs_ToCompare] =  DoWilcoxonOnArray(data, pairs_ToCompare)
 % 
 % Calculates p-values for Wilcoxon ranksum test on selected parts of dataset
@@ -7,7 +8,7 @@ function [pvalues, pairs_ToCompare] =  DoWilcoxonOnArray(data, pairs_ToCompare)
 % INPUT
 % 
 %    data               data to compare statistically: either N*M matrix where
-%                       colums are for comparison, ot cell array where all cells to
+%                       colums are for comparison, or cell array where all cells to
 %                       compare are of equal size
 %    pairs_ToCompare    cell array with pairs to be do the test on. If data
 %                       is matrix, columns will be compared, if data is

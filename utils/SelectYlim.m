@@ -1,6 +1,6 @@
 function ylim_out = SelectYlim(fhandle)
 % 
-% Outputs ylimiits that would fit all axis on the figure
+% Outputs ylimits that would fit all axis on the figure
 % Selects minimal of all values towards negative Inf and maximum towards
 % positive Inf
 % 

@@ -15,7 +15,7 @@
 
 %% Parameters
 % Mice that go in the analysis
-nmouse = [797 798 828 861 882 905 906 911 912 977 994];
+nmouse = [797 798 828 861 882 905 906 911 912 977 994 1117 1124 1161 1162 1168 1182 1186 1199];
 % nmouse = [906 912]; % Had PreMazes
 % nmouse = [905 911]; % Did not have PreMazes
 
@@ -31,7 +31,7 @@ SleepTimeToRestrict = 2*60*60*1e4; % 2 hours
 ISI = [0.1*1e4; 0.5*1e4; 1e4; 2e4; 3e4; 5e4];
 
 % Do you want to save the figures?
-savfig = true;
+savfig = false;
 
 % Paths and names to save
 pathfig = '/MOBS_workingON/Dima/Ongoing_results/Spikes/BasicCharacteristics/Number_spikes/'; % Without dropbox
@@ -50,8 +50,8 @@ NREMPre = cell(length(Dir.path), 1);
 REMPre = cell(length(Dir.path), 1);
 NREMPost = cell(length(Dir.path), 1);
 REMPost = cell(length(Dir.path), 1);
-NREMPre_lastH = cell(length(Dir.path), 1);
-NREMPost_lastH = cell(length(Dir.path), 1);
+% NREMPre_lastH = cell(length(Dir.path), 1);
+% NREMPost_lastH = cell(length(Dir.path), 1);
 % Results - FR
 FRNREMPre = cell(length(Dir.path), 1);
 FRREMPre = cell(length(Dir.path), 1);
@@ -63,27 +63,27 @@ numSpREMPost = cell(length(Dir.path), 1);
 % Results - REM - # spikes per episode
 numSpREMPre_ep = cell(length(Dir.path), 1);
 numSpREMPost_ep = cell(length(Dir.path), 1);
-% Results - NREM #spikes last hour
-numSpNREMPre_lastH = cell(length(Dir.path), 1);
-numSpNREMPost_lastH = cell(length(Dir.path), 1);
-% Results - NREM #FR last hour
-FRNREMPre_lastH = cell(length(Dir.path), 1);
-FRNREMPost_lastH = cell(length(Dir.path), 1);
-% Results - number of stimulations
-numStimREM_Pre = cell(length(Dir.path),1);
-numStimREM_Post = cell(length(Dir.path),1);
-numStimNREM_Pre_lastH = cell(length(Dir.path),1);
-numStimNREM_Post_lastH = cell(length(Dir.path),1);
+% % Results - NREM #spikes last hour
+% numSpNREMPre_lastH = cell(length(Dir.path), 1);
+% numSpNREMPost_lastH = cell(length(Dir.path), 1);
+% % Results - NREM #FR last hour
+% FRNREMPre_lastH = cell(length(Dir.path), 1);
+% FRNREMPost_lastH = cell(length(Dir.path), 1);
+% % Results - number of stimulations
+% numStimREM_Pre = cell(length(Dir.path),1);
+% numStimREM_Post = cell(length(Dir.path),1);
+% numStimNREM_Pre_lastH = cell(length(Dir.path),1);
+% numStimNREM_Post_lastH = cell(length(Dir.path),1);
 
 %% Load data - here I handle the exceptions too
 
 for i=1:length(Dir.path)
     spikes{i} = load([Dir.path{i}{1} 'SpikeData.mat'],'S','PlaceCells', 'BasicNeuronInfo');
-    behav{i} = load([Dir.path{i}{1} 'behavResources.mat'],'SessionEpoch','CleanVtsd','CleanAlignedXtsd','CleanAlignedYtsd','FreezeAccEpoch');
-    if strcmp(Dir.name{i}, 'Mouse906') || strcmp(Dir.name{i}, 'Mouse977') % Mice with bad OB-based sleep scoring
-        sleep{i} = load([Dir.path{i}{1} 'SleepScoring_Accelero.mat'],'SWSEpoch','REMEpoch','Sleep'); % Sleep is not used
-    else
-        sleep{i} = load([Dir.path{i}{1} 'SleepScoring_OBGamma.mat'],'SWSEpoch','REMEpoch','Sleep');  % Sleep is not used
+    behav{i} = load([Dir.path{i}{1} 'behavResources.mat'],'SessionEpoch','Vtsd','AlignedXtsd','AlignedYtsd','FreezeAccEpoch');
+    try
+        sleep{i} = load([Dir.path{i}{1} 'SleepScoring_OBGamma.mat'],'SWSEpoch','REMEpoch');
+    catch
+        sleep{i} = load([Dir.path{i}{1} 'SleepScoring_Accelero.mat'],'SWSEpoch','REMEpoch');
     end
 end
 
@@ -114,22 +114,22 @@ for i=1:length(Dir.path)
         REMPost{i} = and(behav{i}.SessionEpoch.PostSleep, sleep{i}.REMEpoch);
     end
 end
-
-% Create the last hour of sleep - NREM (exclude the mice with less than 2 hours of sleep session)
-for i = 1:length(Dir.path)
-    % Pre
-    temp = SplitIntervals(behav{i}.SessionEpoch.PreSleep, SleepTimeToRestrict/2);
-    if length(temp) > 1
-        NREMPre_lastH{i} = and(temp{2}, sleep{i}.SWSEpoch); % Second hour
-    end
-    clear temp
-    % Post
-    temp = SplitIntervals(behav{i}.SessionEpoch.PostSleep, SleepTimeToRestrict/2);
-    if length(temp) > 1
-        NREMPost_lastH{i} = and(temp{2}, sleep{i}.SWSEpoch); % Second hour
-    end
-    clear temp
-end
+% 
+% % Create the last hour of sleep - NREM (exclude the mice with less than 2 hours of sleep session)
+% for i = 1:length(Dir.path)
+%     % Pre
+%     temp = SplitIntervals(behav{i}.SessionEpoch.PreSleep, SleepTimeToRestrict/2);
+%     if length(temp) > 1
+%         NREMPre_lastH{i} = and(temp{2}, sleep{i}.SWSEpoch); % Second hour
+%     end
+%     clear temp
+%     % Post
+%     temp = SplitIntervals(behav{i}.SessionEpoch.PostSleep, SleepTimeToRestrict/2);
+%     if length(temp) > 1
+%         NREMPost_lastH{i} = and(temp{2}, sleep{i}.SWSEpoch); % Second hour
+%     end
+%     clear temp
+% end
 
 %% Calculate firing rate in PCs
 
@@ -146,10 +146,10 @@ for i = 1:length(Dir.path)
         FRNREMPost{i}.nonPCs = zeros(length(nonPCs{i}), 1);
         FRREMPost{i}.nonPCs = zeros(length(nonPCs{i}), 1);
         
-        FRNREMPre_lastH{i}.PCs = nan(length(PCs{i}), 1);
-        FRNREMPre_lastH{i}.nonPCs = nan(length(nonPCs{i}), 1);
-        FRNREMPost_lastH{i}.PCs = nan(length(PCs{i}), 1);
-        FRNREMPost_lastH{i}.nonPCs = nan(length(nonPCs{i}), 1);
+%         FRNREMPre_lastH{i}.PCs = nan(length(PCs{i}), 1);
+%         FRNREMPre_lastH{i}.nonPCs = nan(length(nonPCs{i}), 1);
+%         FRNREMPost_lastH{i}.PCs = nan(length(PCs{i}), 1);
+%         FRNREMPost_lastH{i}.nonPCs = nan(length(nonPCs{i}), 1);
         
         % PlaceCells
         for j = 1:length(PCs{i})
@@ -157,12 +157,12 @@ for i = 1:length(Dir.path)
             FRREMPre{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, REMPre{i}))/sum(End(REMPre{i}, 's') - Start(REMPre{i}, 's'));
             FRNREMPost{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost{i}))/sum(End(NREMPost{i}, 's') - Start(NREMPost{i}, 's'));
             FRREMPost{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, REMPost{i}))/sum(End(REMPost{i}, 's') - Start(REMPost{i}, 's'));
-            if ~isempty(NREMPre_lastH{i})
-                FRNREMPre_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPre_lastH{i}))/sum(End(NREMPre_lastH{i}, 's') - Start(NREMPre_lastH{i}, 's'));
-            end
-            if ~isempty(NREMPost_lastH{i})
-                FRNREMPost_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost_lastH{i}))/sum(End(NREMPost_lastH{i}, 's') - Start(NREMPost_lastH{i}, 's'));
-            end
+%             if ~isempty(NREMPre_lastH{i})
+%                 FRNREMPre_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPre_lastH{i}))/sum(End(NREMPre_lastH{i}, 's') - Start(NREMPre_lastH{i}, 's'));
+%             end
+%             if ~isempty(NREMPost_lastH{i})
+%                 FRNREMPost_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost_lastH{i}))/sum(End(NREMPost_lastH{i}, 's') - Start(NREMPost_lastH{i}, 's'));
+%             end
         end
         
         % non-PlaceCells
@@ -171,12 +171,12 @@ for i = 1:length(Dir.path)
             FRREMPre{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, REMPre{i}))/sum(End(REMPre{i}, 's') - Start(REMPre{i}, 's'));
             FRNREMPost{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost{i}))/sum(End(NREMPost{i}, 's') - Start(NREMPost{i}, 's'));
             FRREMPost{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, REMPost{i}))/sum(End(REMPost{i}, 's') - Start(REMPost{i}, 's'));
-            if ~isempty(NREMPre_lastH{i})
-                FRNREMPre_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPre_lastH{i}))/sum(End(NREMPre_lastH{i}, 's') - Start(NREMPre_lastH{i}, 's'));
-            end
-            if ~isempty(NREMPost_lastH{i})
-                FRNREMPost_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost_lastH{i}))/sum(End(NREMPost_lastH{i}, 's') - Start(NREMPost_lastH{i}, 's'));
-            end
+%             if ~isempty(NREMPre_lastH{i})
+%                 FRNREMPre_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPre_lastH{i}))/sum(End(NREMPre_lastH{i}, 's') - Start(NREMPre_lastH{i}, 's'));
+%             end
+%             if ~isempty(NREMPost_lastH{i})
+%                 FRNREMPost_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost_lastH{i}))/sum(End(NREMPost_lastH{i}, 's') - Start(NREMPost_lastH{i}, 's'));
+%             end
         end
     end
 end
@@ -217,174 +217,174 @@ for i = 1:length(Dir.path)
 end
 
 %% Calculate number of spikes in the last hour of NREM
-
-for i = 1:length(Dir.path)
-    if ~isempty(PCs{i})
-        % PreAllocate matrices
-        numSpNREMPre_lastH{i}.PCs = zeros(length(PCs{i}), 1);
-        numSpNREMPost_lastH{i}.PCs = zeros(length(PCs{i}), 1);
-        
-        numSpNREMPre_lastH{i}.nonPCs = zeros(length(nonPCs{i}), 1);
-        numSpNREMPost_lastH{i}.nonPCs = zeros(length(nonPCs{i}), 1);
-        
-        % PlaceCells
-        for j = 1:length(PCs{i})
-            numSpNREMPre_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPre_lastH{i}));
-            numSpNREMPost_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost_lastH{i}));
-        end
-        
-        % non-PlaceCells
-        for j=1:length(nonPCs{i})
-            numSpNREMPre_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPre_lastH{i}));
-            numSpNREMPost_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost_lastH{i}));
-        end
-    end
-end
+% 
+% for i = 1:length(Dir.path)
+%     if ~isempty(PCs{i})
+%         % PreAllocate matrices
+%         numSpNREMPre_lastH{i}.PCs = zeros(length(PCs{i}), 1);
+%         numSpNREMPost_lastH{i}.PCs = zeros(length(PCs{i}), 1);
+%         
+%         numSpNREMPre_lastH{i}.nonPCs = zeros(length(nonPCs{i}), 1);
+%         numSpNREMPost_lastH{i}.nonPCs = zeros(length(nonPCs{i}), 1);
+%         
+%         % PlaceCells
+%         for j = 1:length(PCs{i})
+%             numSpNREMPre_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPre_lastH{i}));
+%             numSpNREMPost_lastH{i}.PCs(j) = length(Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost_lastH{i}));
+%         end
+%         
+%         % non-PlaceCells
+%         for j=1:length(nonPCs{i})
+%             numSpNREMPre_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPre_lastH{i}));
+%             numSpNREMPost_lastH{i}.nonPCs(j) = length(Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost_lastH{i}));
+%         end
+%     end
+% end
 
 %% Calculate number of stimulations given the activity of each cell
 % REM
-for i=1:length(Dir.path)
-    % PreAllocate
-    numStimREM_Pre{i}.PCs = zeros(length(PCs{i}), length(ISI));
-    numStimREM_Pre{i}.nonPCs = zeros(length(nonPCs{i}), length(ISI));
-    numStimREM_Post{i}.PCs = zeros(length(PCs{i}), length(ISI));
-    numStimREM_Post{i}.nonPCs = zeros(length(nonPCs{i}), length(ISI));
-    
-    numStimNREM_Pre_lastH{i}.PCs = nan(length(PCs{i}), length(ISI));
-    numStimNREM_Pre_lastH{i}.nonPCs = nan(length(nonPCs{i}), length(ISI));
-    numStimNREM_Post_lastH{i}.PCs = nan(length(PCs{i}), length(ISI));
-    numStimNREM_Post_lastH{i}.nonPCs = nan(length(nonPCs{i}), length(ISI));
-    
-    
-    % PCs
-    for j = 1:length(PCs{i})
-        spiketrain_preREM = Restrict(spikes{i}.S{PCs{i}(j)}, REMPre{i});
-        spiketrain_postREM = Restrict(spikes{i}.S{PCs{i}(j)}, REMPost{i});
-        spiketrain_preNREM_lastH = Restrict(spikes{i}.S{PCs{i}(j)}, NREMPre_lastH{i});
-        spiketrain_postNREM_lastH = Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost_lastH{i});
-        for k = 1:length(ISI)
-            % PreREM
-            tempdiff = diff(Data(spiketrain_preREM));
-            numStimREM_Pre{i}.PCs(j,k) = 1; % Stimulation to the first stimulus
-            count = 0;
-            for l = 1:length(tempdiff)
-                count = count + tempdiff(l);
-                if count > ISI(k)
-                    count = 0;
-                    numStimREM_Pre{i}.PCs(j,k) = numStimREM_Pre{i}.PCs(j,k) + 1;
-                end
-            end
-            clear tempdiff count
-            % PostREM
-            tempdiff = diff(Data(spiketrain_postREM));
-            numStimREM_Post{i}.PCs(j,k) = 1;
-            count = 0;
-            for l = 1:length(tempdiff)
-                count = count + tempdiff(l);
-                if count > ISI(k)
-                    count = 0;
-                    numStimREM_Post{i}.PCs(j,k) = numStimREM_Post{i}.PCs(j,k) + 1;
-                end
-            end
-            clear tempdiff count
-            
-            % PreNREM
-            if ~isempty(NREMPre_lastH{i})
-                tempdiff = diff(Data(spiketrain_preNREM_lastH));
-                numStimNREM_Pre_lastH{i}.PCs(j,k) = 1;
-                count = 0;
-                for l = 1:length(tempdiff)
-                    count = count + tempdiff(l);
-                    if count > ISI(k)
-                        count = 0;
-                        numStimNREM_Pre_lastH{i}.PCs(j,k) = numStimNREM_Pre_lastH{i}.PCs(j,k) + 1;
-                    end
-                end
-                clear tempdiff count
-            end
-            % PostNREM
-            if ~isempty(NREMPost_lastH{i})
-                tempdiff = diff(Data(spiketrain_postNREM_lastH));
-                numStimNREM_Post_lastH{i}.PCs(j,k) = 1;
-                count = 0;
-                for l = 1:length(tempdiff)
-                    count = count + tempdiff(l);
-                    if count > ISI(k)
-                        count = 0;
-                        numStimNREM_Post_lastH{i}.PCs(j,k) = numStimNREM_Post_lastH{i}.PCs(j,k) + 1;
-                    end
-                end
-                clear tempdiff count
-            end
-        end
-        clear spiketrain_preREM spiketrain_postREM spiketrain_preNREM_lastH spiketrain_postNREM_lastH
-    end
-    
-    % non-PCs
-    for j = 1:length(nonPCs{i})
-        spiketrain_preREM = Restrict(spikes{i}.S{nonPCs{i}(j)}, REMPre{i});
-        spiketrain_postREM = Restrict(spikes{i}.S{nonPCs{i}(j)}, REMPost{i});
-        spiketrain_preNREM_lastH = Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPre_lastH{i});
-        spiketrain_postNREM_lastH = Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost_lastH{i});
-        for k = 1:length(ISI)
-            % PreREM
-            tempdiff = diff(Data(spiketrain_preREM));
-            numStimREM_Pre{i}.nonPCs(j,k) = 1; % Stimulation to the first stimulus
-            count = 0;
-            for l = 1:length(tempdiff)
-                count = count + tempdiff(l);
-                if count > ISI(k)
-                    count = 0;
-                    numStimREM_Pre{i}.nonPCs(j,k) = numStimREM_Pre{i}.nonPCs(j,k) + 1;
-                end
-            end
-            clear tempdiff count
-            % PostREM
-            tempdiff = diff(Data(spiketrain_postREM));
-            numStimREM_Post{i}.nonPCs(j,k) = 1;
-            count = 0;
-            for l = 1:length(tempdiff)
-                count = count + tempdiff(l);
-                if count > ISI(k)
-                    count = 0;
-                    numStimREM_Post{i}.nonPCs(j,k) = numStimREM_Post{i}.nonPCs(j,k) + 1;
-                end
-            end
-            clear tempdiff count
-            
-            % PreNREM
-            if ~isempty(NREMPre_lastH{i})
-                tempdiff = diff(Data(spiketrain_preNREM_lastH));
-                numStimNREM_Pre_lastH{i}.nonPCs(j,k) = 1;
-                count = 0;
-                for l = 1:length(tempdiff)
-                    count = count + tempdiff(l);
-                    if count > ISI(k)
-                        count = 0;
-                        numStimNREM_Pre_lastH{i}.nonPCs(j,k) = numStimNREM_Pre_lastH{i}.nonPCs(j,k) + 1;
-                    end
-                end
-                clear tempdiff count
-            end
-            % PostNREM
-            if ~isempty(NREMPost_lastH{i})
-                tempdiff = diff(Data(spiketrain_postNREM_lastH));
-                numStimNREM_Post_lastH{i}.nonPCs(j,k) = 1;
-                count = 0;
-                for l = 1:length(tempdiff)
-                    count = count + tempdiff(l);
-                    if count > ISI(k)
-                        count = 0;
-                        numStimNREM_Post_lastH{i}.nonPCs(j,k) = numStimNREM_Post_lastH{i}.nonPCs(j,k) + 1;
-                    end
-                end
-                clear tempdiff count
-            end
-        end
-        clear spiketrain_preREM spiketrain_postREM spiketrain_preNREM_lastH spiketrain_postNREM_lastH
-    end
-    
-end
+% for i=1:length(Dir.path)
+%     % PreAllocate
+%     numStimREM_Pre{i}.PCs = zeros(length(PCs{i}), length(ISI));
+%     numStimREM_Pre{i}.nonPCs = zeros(length(nonPCs{i}), length(ISI));
+%     numStimREM_Post{i}.PCs = zeros(length(PCs{i}), length(ISI));
+%     numStimREM_Post{i}.nonPCs = zeros(length(nonPCs{i}), length(ISI));
+%     
+%     numStimNREM_Pre_lastH{i}.PCs = nan(length(PCs{i}), length(ISI));
+%     numStimNREM_Pre_lastH{i}.nonPCs = nan(length(nonPCs{i}), length(ISI));
+%     numStimNREM_Post_lastH{i}.PCs = nan(length(PCs{i}), length(ISI));
+%     numStimNREM_Post_lastH{i}.nonPCs = nan(length(nonPCs{i}), length(ISI));
+%     
+%     
+%     % PCs
+%     for j = 1:length(PCs{i})
+%         spiketrain_preREM = Restrict(spikes{i}.S{PCs{i}(j)}, REMPre{i});
+%         spiketrain_postREM = Restrict(spikes{i}.S{PCs{i}(j)}, REMPost{i});
+%         spiketrain_preNREM_lastH = Restrict(spikes{i}.S{PCs{i}(j)}, NREMPre_lastH{i});
+%         spiketrain_postNREM_lastH = Restrict(spikes{i}.S{PCs{i}(j)}, NREMPost_lastH{i});
+%         for k = 1:length(ISI)
+%             % PreREM
+%             tempdiff = diff(Data(spiketrain_preREM));
+%             numStimREM_Pre{i}.PCs(j,k) = 1; % Stimulation to the first stimulus
+%             count = 0;
+%             for l = 1:length(tempdiff)
+%                 count = count + tempdiff(l);
+%                 if count > ISI(k)
+%                     count = 0;
+%                     numStimREM_Pre{i}.PCs(j,k) = numStimREM_Pre{i}.PCs(j,k) + 1;
+%                 end
+%             end
+%             clear tempdiff count
+%             % PostREM
+%             tempdiff = diff(Data(spiketrain_postREM));
+%             numStimREM_Post{i}.PCs(j,k) = 1;
+%             count = 0;
+%             for l = 1:length(tempdiff)
+%                 count = count + tempdiff(l);
+%                 if count > ISI(k)
+%                     count = 0;
+%                     numStimREM_Post{i}.PCs(j,k) = numStimREM_Post{i}.PCs(j,k) + 1;
+%                 end
+%             end
+%             clear tempdiff count
+%             
+%             % PreNREM
+%             if ~isempty(NREMPre_lastH{i})
+%                 tempdiff = diff(Data(spiketrain_preNREM_lastH));
+%                 numStimNREM_Pre_lastH{i}.PCs(j,k) = 1;
+%                 count = 0;
+%                 for l = 1:length(tempdiff)
+%                     count = count + tempdiff(l);
+%                     if count > ISI(k)
+%                         count = 0;
+%                         numStimNREM_Pre_lastH{i}.PCs(j,k) = numStimNREM_Pre_lastH{i}.PCs(j,k) + 1;
+%                     end
+%                 end
+%                 clear tempdiff count
+%             end
+%             % PostNREM
+%             if ~isempty(NREMPost_lastH{i})
+%                 tempdiff = diff(Data(spiketrain_postNREM_lastH));
+%                 numStimNREM_Post_lastH{i}.PCs(j,k) = 1;
+%                 count = 0;
+%                 for l = 1:length(tempdiff)
+%                     count = count + tempdiff(l);
+%                     if count > ISI(k)
+%                         count = 0;
+%                         numStimNREM_Post_lastH{i}.PCs(j,k) = numStimNREM_Post_lastH{i}.PCs(j,k) + 1;
+%                     end
+%                 end
+%                 clear tempdiff count
+%             end
+%         end
+%         clear spiketrain_preREM spiketrain_postREM spiketrain_preNREM_lastH spiketrain_postNREM_lastH
+%     end
+%     
+%     % non-PCs
+%     for j = 1:length(nonPCs{i})
+%         spiketrain_preREM = Restrict(spikes{i}.S{nonPCs{i}(j)}, REMPre{i});
+%         spiketrain_postREM = Restrict(spikes{i}.S{nonPCs{i}(j)}, REMPost{i});
+%         spiketrain_preNREM_lastH = Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPre_lastH{i});
+%         spiketrain_postNREM_lastH = Restrict(spikes{i}.S{nonPCs{i}(j)}, NREMPost_lastH{i});
+%         for k = 1:length(ISI)
+%             % PreREM
+%             tempdiff = diff(Data(spiketrain_preREM));
+%             numStimREM_Pre{i}.nonPCs(j,k) = 1; % Stimulation to the first stimulus
+%             count = 0;
+%             for l = 1:length(tempdiff)
+%                 count = count + tempdiff(l);
+%                 if count > ISI(k)
+%                     count = 0;
+%                     numStimREM_Pre{i}.nonPCs(j,k) = numStimREM_Pre{i}.nonPCs(j,k) + 1;
+%                 end
+%             end
+%             clear tempdiff count
+%             % PostREM
+%             tempdiff = diff(Data(spiketrain_postREM));
+%             numStimREM_Post{i}.nonPCs(j,k) = 1;
+%             count = 0;
+%             for l = 1:length(tempdiff)
+%                 count = count + tempdiff(l);
+%                 if count > ISI(k)
+%                     count = 0;
+%                     numStimREM_Post{i}.nonPCs(j,k) = numStimREM_Post{i}.nonPCs(j,k) + 1;
+%                 end
+%             end
+%             clear tempdiff count
+%             
+%             % PreNREM
+%             if ~isempty(NREMPre_lastH{i})
+%                 tempdiff = diff(Data(spiketrain_preNREM_lastH));
+%                 numStimNREM_Pre_lastH{i}.nonPCs(j,k) = 1;
+%                 count = 0;
+%                 for l = 1:length(tempdiff)
+%                     count = count + tempdiff(l);
+%                     if count > ISI(k)
+%                         count = 0;
+%                         numStimNREM_Pre_lastH{i}.nonPCs(j,k) = numStimNREM_Pre_lastH{i}.nonPCs(j,k) + 1;
+%                     end
+%                 end
+%                 clear tempdiff count
+%             end
+%             % PostNREM
+%             if ~isempty(NREMPost_lastH{i})
+%                 tempdiff = diff(Data(spiketrain_postNREM_lastH));
+%                 numStimNREM_Post_lastH{i}.nonPCs(j,k) = 1;
+%                 count = 0;
+%                 for l = 1:length(tempdiff)
+%                     count = count + tempdiff(l);
+%                     if count > ISI(k)
+%                         count = 0;
+%                         numStimNREM_Post_lastH{i}.nonPCs(j,k) = numStimNREM_Post_lastH{i}.nonPCs(j,k) + 1;
+%                     end
+%                 end
+%                 clear tempdiff count
+%             end
+%         end
+%         clear spiketrain_preREM spiketrain_postREM spiketrain_preNREM_lastH spiketrain_postNREM_lastH
+%     end
+%     
+% end
 
 %% Pool neurons
 
@@ -415,23 +415,23 @@ numSp.Pre.NREM.PCs = numSpNREMPre_lastH{1}.PCs;
 numSp.Pre.NREM.nonPCs = numSpNREMPre_lastH{1}.nonPCs;
 numSp.Post.NREM.PCs = numSpNREMPost_lastH{1}.PCs;
 numSp.Post.NREM.nonPCs = numSpNREMPost_lastH{1}.nonPCs;
-
-% Spikes in NREM (last hour)
-FR.Pre.NREM_lastH.PCs = FRNREMPre_lastH{1}.PCs;
-FR.Pre.NREM_lastH.nonPCs = FRNREMPre_lastH{1}.nonPCs;
-FR.Post.NREM_lastH.PCs = FRNREMPost_lastH{1}.PCs;
-FR.Post.NREM_lastH.nonPCs = FRNREMPost_lastH{1}.nonPCs;
-
-% Stimulation numbers
-numStim.Pre.REM.PCs = numStimREM_Pre{1}.PCs;
-numStim.Post.REM.PCs = numStimREM_Post{1}.PCs;
-numStim.Pre.REM.nonPCs = numStimREM_Pre{1}.nonPCs;
-numStim.Post.REM.nonPCs = numStimREM_Post{1}.nonPCs;
-
-numStim.Pre.NREM_last.PCs = numStimNREM_Pre_lastH{1}.PCs;
-numStim.Post.NREM_last.PCs = numStimNREM_Post_lastH{1}.PCs;
-numStim.Pre.NREM_last.nonPCs = numStimNREM_Pre_lastH{1}.nonPCs;
-numStim.Post.NREM_last.nonPCs = numStimNREM_Post_lastH{1}.nonPCs;
+% 
+% % Spikes in NREM (last hour)
+% FR.Pre.NREM_lastH.PCs = FRNREMPre_lastH{1}.PCs;
+% FR.Pre.NREM_lastH.nonPCs = FRNREMPre_lastH{1}.nonPCs;
+% FR.Post.NREM_lastH.PCs = FRNREMPost_lastH{1}.PCs;
+% FR.Post.NREM_lastH.nonPCs = FRNREMPost_lastH{1}.nonPCs;
+% 
+% % Stimulation numbers
+% numStim.Pre.REM.PCs = numStimREM_Pre{1}.PCs;
+% numStim.Post.REM.PCs = numStimREM_Post{1}.PCs;
+% numStim.Pre.REM.nonPCs = numStimREM_Pre{1}.nonPCs;
+% numStim.Post.REM.nonPCs = numStimREM_Post{1}.nonPCs;
+% 
+% numStim.Pre.NREM_last.PCs = numStimNREM_Pre_lastH{1}.PCs;
+% numStim.Post.NREM_last.PCs = numStimNREM_Post_lastH{1}.PCs;
+% numStim.Pre.NREM_last.nonPCs = numStimNREM_Pre_lastH{1}.nonPCs;
+% numStim.Post.NREM_last.nonPCs = numStimNREM_Post_lastH{1}.nonPCs;
 
 if length(Dir.path) > 1
     for i = 2:length(Dir.path)
@@ -460,21 +460,21 @@ if length(Dir.path) > 1
             numSp.Pre.NREM.nonPCs = [numSp.Pre.NREM.nonPCs; numSpNREMPre_lastH{i}.nonPCs];
             numSp.Post.NREM.PCs = [numSp.Post.NREM.PCs; numSpNREMPost_lastH{i}.PCs];
             numSp.Post.NREM.nonPCs = [numSp.Post.NREM.nonPCs; numSpNREMPost_lastH{i}.nonPCs];
-            
-            FR.Pre.NREM_lastH.PCs = [FR.Pre.NREM_lastH.PCs; FRNREMPre_lastH{i}.PCs];
-            FR.Pre.NREM_lastH.nonPCs = [FR.Pre.NREM_lastH.nonPCs; FRNREMPre_lastH{i}.nonPCs];
-            FR.Post.NREM_lastH.PCs = [FR.Post.NREM_lastH.PCs; FRNREMPost_lastH{i}.PCs];
-            FR.Post.NREM_lastH.nonPCs = [FR.Post.NREM_lastH.PCs; FRNREMPost_lastH{i}.nonPCs];
-            
-            numStim.Pre.REM.PCs = [numStim.Pre.REM.PCs; numStimREM_Pre{i}.PCs];
-            numStim.Post.REM.PCs = [numStim.Post.REM.PCs; numStimREM_Post{i}.PCs];
-            numStim.Pre.REM.nonPCs = [numStim.Pre.REM.nonPCs; numStimREM_Pre{i}.nonPCs];
-            numStim.Post.REM.nonPCs = [numStim.Post.REM.nonPCs; numStimREM_Post{i}.nonPCs];
-            
-            numStim.Pre.NREM_last.PCs = [numStim.Pre.NREM_last.PCs; numStimNREM_Pre_lastH{i}.PCs];
-            numStim.Post.NREM_last.PCs = [numStim.Post.NREM_last.PCs; numStimNREM_Post_lastH{i}.PCs];
-            numStim.Pre.NREM_last.nonPCs = [numStim.Pre.NREM_last.nonPCs; numStimNREM_Pre_lastH{i}.nonPCs];
-            numStim.Post.NREM_last.nonPCs = [numStim.Post.NREM_last.nonPCs; numStimNREM_Post_lastH{i}.nonPCs];
+%             
+%             FR.Pre.NREM_lastH.PCs = [FR.Pre.NREM_lastH.PCs; FRNREMPre_lastH{i}.PCs];
+%             FR.Pre.NREM_lastH.nonPCs = [FR.Pre.NREM_lastH.nonPCs; FRNREMPre_lastH{i}.nonPCs];
+%             FR.Post.NREM_lastH.PCs = [FR.Post.NREM_lastH.PCs; FRNREMPost_lastH{i}.PCs];
+%             FR.Post.NREM_lastH.nonPCs = [FR.Post.NREM_lastH.PCs; FRNREMPost_lastH{i}.nonPCs];
+%             
+%             numStim.Pre.REM.PCs = [numStim.Pre.REM.PCs; numStimREM_Pre{i}.PCs];
+%             numStim.Post.REM.PCs = [numStim.Post.REM.PCs; numStimREM_Post{i}.PCs];
+%             numStim.Pre.REM.nonPCs = [numStim.Pre.REM.nonPCs; numStimREM_Pre{i}.nonPCs];
+%             numStim.Post.REM.nonPCs = [numStim.Post.REM.nonPCs; numStimREM_Post{i}.nonPCs];
+%             
+%             numStim.Pre.NREM_last.PCs = [numStim.Pre.NREM_last.PCs; numStimNREM_Pre_lastH{i}.PCs];
+%             numStim.Post.NREM_last.PCs = [numStim.Post.NREM_last.PCs; numStimNREM_Post_lastH{i}.PCs];
+%             numStim.Pre.NREM_last.nonPCs = [numStim.Pre.NREM_last.nonPCs; numStimNREM_Pre_lastH{i}.nonPCs];
+%             numStim.Post.NREM_last.nonPCs = [numStim.Post.NREM_last.nonPCs; numStimNREM_Post_lastH{i}.nonPCs];
         end
         
     end
@@ -707,137 +707,137 @@ if savfig
     saveFigure(ffr_nrem,'FR_NREM',[dropbox pathfig]);
 end
 
-% FR during last hour of NREM
-Pl = {FR.Pre.NREM_lastH.PCs; FR.Post.NREM_lastH.PCs; []; FR.Pre.NREM_lastH.nonPCs; FR.Post.NREM_lastH.nonPCs};
-Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9],[], [0.45 0.6 0.3], [0.3 0.4 0.2]};
-ffr_lh = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.95]);
-MakeViolinPlot_DB(Pl,Cols,1:5,[],0);
-hold on
-for i=1:2
-    if ~isempty(Pl{i})
-        handlesplot=plotSpread(Pl{i}(idx_SZ),'distributionColors',[1 0 0],'xValues',i,'spreadWidth',0.8);
-        set(handlesplot{1},'MarkerSize',15);
-    end
-end
-hold off
-set(gca,'XTick', [1:5], 'XTickLabel', {'PreREM','PostREM', '', 'PreREM', 'PostREM'}, 'FontSize', 19, 'FontWeight', 'bold');
-yl = ylim;
-%//
-% Add groups - code stolen from <stackoverflow.com/questions/33165830/double-ticklabel-in-matlab>
-groupX = [1.5 4.5]; %// central value of each group
-groupY = yl(1) - yl(2)*0.08; %// vertical position of texts. Adjust as needed
-deltaY = .03; %// controls vertical compression of axis. Adjust as needed
-groupNames = {'PlaceCells', 'non Place Cells'};
-for g = 1:numel(groupX)
-    h = text(groupX(g), groupY, groupNames{g}, 'Fontsize', 23, 'Fontweight', 'bold');
-    %// create text for group with appropriate font size and weight
-    pos = get(h, 'Position');
-    ext = get(h, 'Extent');
-    pos(1) = pos(1) - ext(3)/2; %// horizontally correct position to make it centered
-    set(h, 'Position', pos); %// set corrected position for text
-end
-pos = get(gca, 'position');
-pos(2) = pos(2) + deltaY; %// vertically compress axis to make room for texts
-set(gca, 'Position', pos); %/ set corrected position for axis
-%//
-ylabel('Firing rate (Hz)')
-title(['Firing rate during second hour of NREM sleep, N(PCs)=' num2str(numPCs) ', N(nonPCs)=' num2str(length(FR.Pre.REM.nonPCs))],...
-    'FontSize',16);
-if savfig
-    saveas(ffr_lh,[dropbox pathfig 'FR_NREM_lastH.fig']);
-    saveFigure(ffr_lh,'FR_NREM_lastH',[dropbox pathfig]);
-end
-
-% Number of spikes during NREM
-Pl = {numSp.Pre.NREM.PCs; numSp.Post.NREM.PCs; []; numSp.Pre.NREM.nonPCs; numSp.Post.NREM.nonPCs};
-Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9],[], [0.45 0.6 0.3], [0.3 0.4 0.2]};
-f_nrem = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.95]);
-MakeViolinPlot_DB(Pl,Cols,1:5,[],0);
-ax = gca;
-ax.YAxis.Exponent = 0;
-hold on
-for i=1:2
-    if ~isempty(Pl{i})
-        handlesplot=plotSpread(Pl{i}(idx_SZ),'distributionColors',[1 0 0],'xValues',i,'spreadWidth',0.8);
-        set(handlesplot{1},'MarkerSize',15);
-    end
-end
-hold off
-set(gca,'XTick', [1:5], 'XTickLabel', {'PreREM','PostREM', '', 'PreREM', 'PostREM'}, 'FontSize', 19, 'FontWeight', 'bold');
-yl = ylim;
-%//
-% Add groups - code stolen from <stackoverflow.com/questions/33165830/double-ticklabel-in-matlab>
-groupX = [1.5 4.5]; %// central value of each group
-groupY = yl(1) - yl(2)*0.08; %// vertical position of texts. Adjust as needed
-deltaY = .03; %// controls vertical compression of axis. Adjust as needed
-groupNames = {'PlaceCells', 'non Place Cells'};
-for g = 1:numel(groupX)
-    h = text(groupX(g), groupY, groupNames{g}, 'Fontsize', 23, 'Fontweight', 'bold');
-    %// create text for group with appropriate font size and weight
-    pos = get(h, 'Position');
-    ext = get(h, 'Extent');
-    pos(1) = pos(1) - ext(3)/2; %// horizontally correct position to make it centered
-    set(h, 'Position', pos); %// set corrected position for text
-end
-pos = get(gca, 'position');
-pos(2) = pos(2) + deltaY; %// vertically compress axis to make room for texts
-set(gca, 'Position', pos); %/ set corrected position for axis
-%//
-ylabel('Number of spikes')
-title(['Number of spikes during second hour of NREM sleep, N(PCs)=' num2str(numPCs) ', N(nonPCs)=' num2str(length(FR.Pre.REM.nonPCs))],...
-    'FontSize',16);
-if savfig
-    saveas(f_nrem,[dropbox pathfig 'numSp_NREM_lastHour.fig']);
-    saveFigure(f_nrem,'numSp_NREM_lastHour',[dropbox pathfig]);
-end
-
-% Number of stimulations in second hour of NREM
-Pl = {numStim.Pre.NREM_last.PCs, numStim.Pre.NREM_last.PCs};
-Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9]};
-tits = {['PreNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Pre.NREM_last.PCs(:,1)))) ')'],...
-    ['PostNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Post.NREM_last.PCs(:,1)))) ')']};
-f3 = figure('units', 'normalized', 'outerposition', [0 0 0.27 0.75]);
-ax = arrayfun(@(i) subplot(2,1,i, 'NextPlot', 'add', 'Box', 'off'), [1:2]);
-for i = 1:length(ax)
-    axes(ax(i));
-    shadedErrorBar(ISI,nanmean(Pl{i},1),nanstd(Pl{i},1),...
-        {'-ok','markerfacecolor',[0.7,0.4,0.3], 'Color', Cols{i}});
-    xlim([ISI(1) ISI(end)]);
-    set(gca, 'FontSize', 16, 'FontWeight', 'bold','XTick', ISI, 'XTickLabel',...
-        {'100 ms', '500 ms', '1 s', '2s', '3s', '5s'});
-    set(gca,'xscale','log');
-    xlabel('log ISI');
-    ylabel('# Stim');
-    title(tits{i}, 'FontSize', 14);
-end
-yl = ylim;
-if savfig
-    saveas(f3,[dropbox pathfig 'numStim_NREM_lastH.fig']);
-    saveFigure(f3,'numStim_NREM_lastH',[dropbox pathfig]);
-end
-% Number of stimulations in REM - separate figure for only SZ cells
-Pl = {numStim.Pre.NREM_last.PCs(idx_SZ,:), numStim.Pre.NREM_last.PCs(idx_SZ,:)};
-Cols = {[0.9 0.7 0.7], [0.9 0.2 0.2]};
-tits = {['PreNREM 2nd hour: shock zone PCs (N=' num2str(sum(~isnan(numStim.Pre.NREM_last.PCs(idx_SZ,1)))) ')'],...
-    ['PostNREM 2nd hour: shock zone PCs (N=' num2str(sum(~isnan(numStim.Post.NREM_last.PCs(idx_SZ,1)))) ')']};
-f4 = figure('units', 'normalized', 'outerposition', [0 0 0.27 0.75]);
-ax = arrayfun(@(i) subplot(2,1,i, 'NextPlot', 'add', 'Box', 'off'), [1:2]);
-for i = 1:length(ax)
-    axes(ax(i));
-    shadedErrorBar(ISI,nanmean(Pl{i},1),nanstd(Pl{i},1),...
-        {'-ok','markerfacecolor',[0.7,0.4,0.3], 'Color', Cols{i}});
-    xlim([ISI(1) ISI(end)]);
-    set(gca, 'FontSize', 16, 'FontWeight', 'bold','XTick', ISI, 'XTickLabel',...
-        {'100 ms', '500 ms', '1 s', '2s', '3s', '5s'});
-    set(gca,'xscale','log');
-    xlabel('log ISI');
-    ylabel('# Stim');
-    title(tits{i}, 'FontSize', 14);
-    ylim(yl);
-end
-if savfig
-    saveas(f4,[dropbox pathfig 'numStim_NREM_lastH_SZ.fig']);
-    saveFigure(f4,'numStim_NREM_lastH_SZ',[dropbox pathfig]);
-end
+% % FR during last hour of NREM
+% Pl = {FR.Pre.NREM_lastH.PCs; FR.Post.NREM_lastH.PCs; []; FR.Pre.NREM_lastH.nonPCs; FR.Post.NREM_lastH.nonPCs};
+% Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9],[], [0.45 0.6 0.3], [0.3 0.4 0.2]};
+% ffr_lh = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.95]);
+% MakeViolinPlot_DB(Pl,Cols,1:5,[],0);
+% hold on
+% for i=1:2
+%     if ~isempty(Pl{i})
+%         handlesplot=plotSpread(Pl{i}(idx_SZ),'distributionColors',[1 0 0],'xValues',i,'spreadWidth',0.8);
+%         set(handlesplot{1},'MarkerSize',15);
+%     end
+% end
+% hold off
+% set(gca,'XTick', [1:5], 'XTickLabel', {'PreREM','PostREM', '', 'PreREM', 'PostREM'}, 'FontSize', 19, 'FontWeight', 'bold');
+% yl = ylim;
+% %//
+% % Add groups - code stolen from <stackoverflow.com/questions/33165830/double-ticklabel-in-matlab>
+% groupX = [1.5 4.5]; %// central value of each group
+% groupY = yl(1) - yl(2)*0.08; %// vertical position of texts. Adjust as needed
+% deltaY = .03; %// controls vertical compression of axis. Adjust as needed
+% groupNames = {'PlaceCells', 'non Place Cells'};
+% for g = 1:numel(groupX)
+%     h = text(groupX(g), groupY, groupNames{g}, 'Fontsize', 23, 'Fontweight', 'bold');
+%     %// create text for group with appropriate font size and weight
+%     pos = get(h, 'Position');
+%     ext = get(h, 'Extent');
+%     pos(1) = pos(1) - ext(3)/2; %// horizontally correct position to make it centered
+%     set(h, 'Position', pos); %// set corrected position for text
+% end
+% pos = get(gca, 'position');
+% pos(2) = pos(2) + deltaY; %// vertically compress axis to make room for texts
+% set(gca, 'Position', pos); %/ set corrected position for axis
+% %//
+% ylabel('Firing rate (Hz)')
+% title(['Firing rate during second hour of NREM sleep, N(PCs)=' num2str(numPCs) ', N(nonPCs)=' num2str(length(FR.Pre.REM.nonPCs))],...
+%     'FontSize',16);
+% if savfig
+%     saveas(ffr_lh,[dropbox pathfig 'FR_NREM_lastH.fig']);
+%     saveFigure(ffr_lh,'FR_NREM_lastH',[dropbox pathfig]);
+% end
+% 
+% % Number of spikes during NREM
+% Pl = {numSp.Pre.NREM.PCs; numSp.Post.NREM.PCs; []; numSp.Pre.NREM.nonPCs; numSp.Post.NREM.nonPCs};
+% Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9],[], [0.45 0.6 0.3], [0.3 0.4 0.2]};
+% f_nrem = figure('units', 'normalized', 'outerposition', [0 0 0.5 0.95]);
+% MakeViolinPlot_DB(Pl,Cols,1:5,[],0);
+% ax = gca;
+% ax.YAxis.Exponent = 0;
+% hold on
+% for i=1:2
+%     if ~isempty(Pl{i})
+%         handlesplot=plotSpread(Pl{i}(idx_SZ),'distributionColors',[1 0 0],'xValues',i,'spreadWidth',0.8);
+%         set(handlesplot{1},'MarkerSize',15);
+%     end
+% end
+% hold off
+% set(gca,'XTick', [1:5], 'XTickLabel', {'PreREM','PostREM', '', 'PreREM', 'PostREM'}, 'FontSize', 19, 'FontWeight', 'bold');
+% yl = ylim;
+% %//
+% % Add groups - code stolen from <stackoverflow.com/questions/33165830/double-ticklabel-in-matlab>
+% groupX = [1.5 4.5]; %// central value of each group
+% groupY = yl(1) - yl(2)*0.08; %// vertical position of texts. Adjust as needed
+% deltaY = .03; %// controls vertical compression of axis. Adjust as needed
+% groupNames = {'PlaceCells', 'non Place Cells'};
+% for g = 1:numel(groupX)
+%     h = text(groupX(g), groupY, groupNames{g}, 'Fontsize', 23, 'Fontweight', 'bold');
+%     %// create text for group with appropriate font size and weight
+%     pos = get(h, 'Position');
+%     ext = get(h, 'Extent');
+%     pos(1) = pos(1) - ext(3)/2; %// horizontally correct position to make it centered
+%     set(h, 'Position', pos); %// set corrected position for text
+% end
+% pos = get(gca, 'position');
+% pos(2) = pos(2) + deltaY; %// vertically compress axis to make room for texts
+% set(gca, 'Position', pos); %/ set corrected position for axis
+% %//
+% ylabel('Number of spikes')
+% title(['Number of spikes during second hour of NREM sleep, N(PCs)=' num2str(numPCs) ', N(nonPCs)=' num2str(length(FR.Pre.REM.nonPCs))],...
+%     'FontSize',16);
+% if savfig
+%     saveas(f_nrem,[dropbox pathfig 'numSp_NREM_lastHour.fig']);
+%     saveFigure(f_nrem,'numSp_NREM_lastHour',[dropbox pathfig]);
+% end
+% 
+% % Number of stimulations in second hour of NREM
+% Pl = {numStim.Pre.NREM_last.PCs, numStim.Pre.NREM_last.PCs};
+% Cols = {[0.7 0.7 0.9], [0.2 0.2 0.9]};
+% tits = {['PreNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Pre.NREM_last.PCs(:,1)))) ')'],...
+%     ['PostNREM 2nd hour: all PCs (N=' num2str(sum(~isnan(numStim.Post.NREM_last.PCs(:,1)))) ')']};
+% f3 = figure('units', 'normalized', 'outerposition', [0 0 0.27 0.75]);
+% ax = arrayfun(@(i) subplot(2,1,i, 'NextPlot', 'add', 'Box', 'off'), [1:2]);
+% for i = 1:length(ax)
+%     axes(ax(i));
+%     shadedErrorBar(ISI,nanmean(Pl{i},1),nanstd(Pl{i},1),...
+%         {'-ok','markerfacecolor',[0.7,0.4,0.3], 'Color', Cols{i}});
+%     xlim([ISI(1) ISI(end)]);
+%     set(gca, 'FontSize', 16, 'FontWeight', 'bold','XTick', ISI, 'XTickLabel',...
+%         {'100 ms', '500 ms', '1 s', '2s', '3s', '5s'});
+%     set(gca,'xscale','log');
+%     xlabel('log ISI');
+%     ylabel('# Stim');
+%     title(tits{i}, 'FontSize', 14);
+% end
+% yl = ylim;
+% if savfig
+%     saveas(f3,[dropbox pathfig 'numStim_NREM_lastH.fig']);
+%     saveFigure(f3,'numStim_NREM_lastH',[dropbox pathfig]);
+% end
+% % Number of stimulations in REM - separate figure for only SZ cells
+% Pl = {numStim.Pre.NREM_last.PCs(idx_SZ,:), numStim.Pre.NREM_last.PCs(idx_SZ,:)};
+% Cols = {[0.9 0.7 0.7], [0.9 0.2 0.2]};
+% tits = {['PreNREM 2nd hour: shock zone PCs (N=' num2str(sum(~isnan(numStim.Pre.NREM_last.PCs(idx_SZ,1)))) ')'],...
+%     ['PostNREM 2nd hour: shock zone PCs (N=' num2str(sum(~isnan(numStim.Post.NREM_last.PCs(idx_SZ,1)))) ')']};
+% f4 = figure('units', 'normalized', 'outerposition', [0 0 0.27 0.75]);
+% ax = arrayfun(@(i) subplot(2,1,i, 'NextPlot', 'add', 'Box', 'off'), [1:2]);
+% for i = 1:length(ax)
+%     axes(ax(i));
+%     shadedErrorBar(ISI,nanmean(Pl{i},1),nanstd(Pl{i},1),...
+%         {'-ok','markerfacecolor',[0.7,0.4,0.3], 'Color', Cols{i}});
+%     xlim([ISI(1) ISI(end)]);
+%     set(gca, 'FontSize', 16, 'FontWeight', 'bold','XTick', ISI, 'XTickLabel',...
+%         {'100 ms', '500 ms', '1 s', '2s', '3s', '5s'});
+%     set(gca,'xscale','log');
+%     xlabel('log ISI');
+%     ylabel('# Stim');
+%     title(tits{i}, 'FontSize', 14);
+%     ylim(yl);
+% end
+% if savfig
+%     saveas(f4,[dropbox pathfig 'numStim_NREM_lastH_SZ.fig']);
+%     saveFigure(f4,'numStim_NREM_lastH_SZ',[dropbox pathfig]);
+% end
 
 %%%%%%%%%%% NREM SLEEP %%%%%%%%%%%%%%%%%%%%%%%%%

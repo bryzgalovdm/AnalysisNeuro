@@ -1,4 +1,4 @@
-function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, varargin)
+function [map, mapNS, stats, px, py, FR, xB, yB, lEpoch]=PlaceField_DB(tsa, XS, YS, varargin)
 
 % INPUT
 %
@@ -33,7 +33,7 @@ function [map, mapNS, stats, px, py, FR, xB, yB]=PlaceField_DB(tsa, XS, YS, vara
 %     stats.fieldX   firing field x boundaries (in bins)
 %     stats.fieldY   firing field y boundaries (in bins)
 %     px             x-coordinates of spikes
-%     py             y-coordinates of spikes
+%     py             y-coordinates of spikeslEpoch
 %     FR             firing rate of a neuron in a given epoch
 %     xB             x-coordinates of spatial bins' centers
 %     yB             y-coordinates of spatial bins' centers
@@ -113,7 +113,7 @@ for i=1:2:length(varargin)
             if ~isa(sizeMap,'numeric')
                 error('Incorrect value for property ''Size'' (type ''help PlaceField_DB'' for details).');
             end
-            
+
         case 'largematrix'
             LMatrix = varargin{i+1};
             if ~isa(LMatrix,'logical')
@@ -147,6 +147,7 @@ end
 
 %% Check if the input variables are not empty
 flagstop = false;
+lEpoch=[];
 
 if isempty(Data(XS)) || isempty(Data(YS))
     flagstop = true;
@@ -293,6 +294,7 @@ else
     % Find firing rate
     if isempty(epoch)
         rg=Range(XS,'s');
+        lEpoch = (rg(end)-rg(1));
         if ~isempty(rg)
             FR=length(Range(tsa))/(rg(end)-rg(1));
         else

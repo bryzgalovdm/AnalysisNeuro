@@ -95,6 +95,7 @@ for itresh = 1:length(thresh)
     timePlot = file.times(file.inferring(:,3)<thresh(itresh));
     
     posPlot = file.pos(file.inferring(:,3)<thresh(itresh),:);
+    id_pos = find(file.inferring(:,3)<thresh(itresh));
     posx = posPlot(:,1);
     posy = posPlot(:,2);
     % eliminate zeros
@@ -141,9 +142,12 @@ for itresh = 1:length(thresh)
     % Figure inferred and real
     f2 = figure('Color',[1 1 1],'rend','painters','pos',[100+itresh*10 20+itresh*10 1600 600])
     subplot(121)
-    scatter(posx(val),posy(val),50,tps(val)','filled');
-    title('Real position', 'FontSize', 16)
     hold on
+    scatter(posx(val),posy(val),50,tps(val)','filled');
+    for ival = 1:length(val)
+        plot(file.pos(id_pos(ival)+1:id_pos(ival)+5,1),file.pos(id_pos(ival)+1:id_pos(ival)+5,2), '*', 'Color', 'k');
+    end
+    title('Real position', 'FontSize', 16)
     plot(maze(:,1),maze(:,2),'k','LineWidth',2)
     rectangle('Position',ShockZone,'EdgeColor','r','LineWidth',2)
     xlim([0.335 1.045]);

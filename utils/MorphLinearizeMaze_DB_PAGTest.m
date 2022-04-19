@@ -1,4 +1,4 @@
-function MorphLinearizeMaze_DB(nMice, varargin)
+function MorphLinearizeMaze_DB_PAGTest(nMice, varargin)
 %
 % This function morphs Umaze to the unified 0-1 coordinates and
 % linearizes trajectories from 0 (shock zone) to 1 (safe zone)
@@ -21,9 +21,8 @@ function MorphLinearizeMaze_DB(nMice, varargin)
 % github.com/bryzgalovdm
 
 %% Hyperparameters
-SessionNames = {'Hab', 'TestPreFakeStim', 'TestPre', 'Cond', 'CondPCDriven', 'TestPost', 'ExploAfter'};
-% SessionNames = {'TestPost', 'ExploAfter'};
-% SessionNames = {'ExploAfter'};
+% SessionNames = {'Hab', 'TestPre', 'Cond', 'TestPost'};
+SessionNames = {'TestImmediat'};
 
 %% Default values of optional arguments
 redo = false;
@@ -45,11 +44,11 @@ end
 
 %% Build directories to transform
 
-Dir = PathForExperimentsERC_Dima(SessionNames{1});
+Dir = PathForExperimentsPAGTest_Dima(SessionNames{1});
 Dir = RestrictPathForExperiment(Dir, 'nMice', nMice);
 for isess = 2:length(SessionNames)
     
-    Dir_temp = PathForExperimentsERC_Dima(SessionNames{isess});
+    Dir_temp = PathForExperimentsPAGTest_Dima(SessionNames{isess});
     Dir_temp = RestrictPathForExperiment(Dir_temp, 'nMice', nMice);
     
     Dir = MergePathForExperiment(Dir, Dir_temp);
@@ -62,12 +61,12 @@ for i = 1:length(Dir.path)
         MorphMaze(Dir.path{i}{k}, redo);
     end
 end
-% Then linearize
-for i = 1:length(Dir.path)
-    for k = 1:length(Dir.path{i})
-        LinearizeMaze(Dir.path{i}{k}, redo);
-    end
-end
+% % Then linearize
+% for i = 1:length(Dir.path)
+%     for k = 1:length(Dir.path{i})
+%         LinearizeMaze(Dir.path{i}{k}, redo);
+%     end
+% end
 
 end
 
@@ -105,7 +104,7 @@ function LinearizeMaze(directory, redo)
 
 load([directory '/behavResources.mat']);
 
-if ~exist('LinearDist','var')
+if ~exist('CleanLinearDist','var')
     
     figure('units', 'normalized', 'outerposition', [0 1 0.5 0.8]);
     
@@ -114,9 +113,9 @@ if ~exist('LinearDist','var')
     curvexy=ginput(4);
     clf
     
-    xxx = Data(Ytsd)';
-    yyy = Data(Xtsd)';
-    mapxy=[Data(Ytsd)'; Data(Xtsd)']';
+    xxx = Data(CleanYtsd)';
+    yyy = Data(CleanXtsd)';
+    mapxy=[Data(CleanYtsd)'; Data(CleanXtsd)']';
     [xy,distance,t] = distance2curve(curvexy,mapxy*Ratio_IMAonREAL,'linear');
     
     t(isnan(xxx))=NaN;
@@ -124,17 +123,17 @@ if ~exist('LinearDist','var')
     subplot(211)
     imagesc(mask+Zone{1})
     hold on
-    plot(Data(Ytsd)'*Ratio_IMAonREAL,Data(Xtsd)'*Ratio_IMAonREAL)
+    plot(Data(CleanYtsd)'*Ratio_IMAonREAL,Data(CleanXtsd)'*Ratio_IMAonREAL)
     subplot(212)
     plot(t), ylim([0 1])
     
-    saveas(gcf,[directory 'lineartraj.fig']);
-    saveFigure(gcf,'lineartraj', directory);
+    saveas(gcf,[directory 'Cleanlineartraj.fig']);
+    saveFigure(gcf,'Cleanlineartraj', directory);
     close(gcf);
     
-    LinearDist=tsd(Range(Xtsd),t);
+    CleanLinearDist=tsd(Range(CleanXtsd),t);
     
-    save([directory 'behavResources.mat'], 'LinearDist','-append');
+    save([directory 'behavResources.mat'], 'CleanLinearDist','-append');
 else
     if redo
         figure('units', 'normalized', 'outerposition', [0 1 0.5 0.8]);
@@ -144,9 +143,9 @@ else
         curvexy=ginput(4);
         clf
         
-        xxx = Data(Ytsd)';
-        yyy = Data(Xtsd)';
-        mapxy=[Data(Ytsd)'; Data(Xtsd)']';
+        xxx = Data(CleanYtsd)';
+        yyy = Data(CleanXtsd)';
+        mapxy=[Data(CleanYtsd)'; Data(CleanXtsd)']';
         [xy,distance,t] = distance2curve(curvexy,mapxy*Ratio_IMAonREAL,'linear');
         
         t(isnan(xxx))=NaN;
@@ -154,17 +153,17 @@ else
         subplot(211)
         imagesc(mask+Zone{1})
         hold on
-        plot(Data(Ytsd)'*Ratio_IMAonREAL,Data(Xtsd)'*Ratio_IMAonREAL)
+        plot(Data(CleanYtsd)'*Ratio_IMAonREAL,Data(CleanXtsd)'*Ratio_IMAonREAL)
         subplot(212)
         plot(t), ylim([0 1])
         
-        saveas(gcf,[directory 'lineartraj.fig']);
-        saveFigure(gcf,'lineartraj', directory);
+        saveas(gcf,[directory 'Cleanlineartraj.fig']);
+        saveFigure(gcf,'Cleanlineartraj', directory);
         close(gcf);
         
-        LinearDist=tsd(Range(Xtsd),t);
+        CleanLinearDist=tsd(Range(CleanXtsd),t);
         
-        save([directory 'behavResources.mat'], 'LinearDist','-append');
+        save([directory 'behavResources.mat'], 'CleanLinearDist','-append');
     end
 end
 

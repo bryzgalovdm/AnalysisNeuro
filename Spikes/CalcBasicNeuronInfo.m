@@ -1,4 +1,7 @@
-%CalcBasicNeuronInfo - Calculate basic properties of sorted clusters.
+%% TODO:  - divide power for OB (FindStrongOsc)
+
+
+function [MatInfoNeurons, BasicNeuronInfo] = CalcBasicNeuronInfo(Dir, ploto)
 %
 % Gets indexes of MUA and SUA, computes firing rate, classify neurons into
 % putative Int/Pyr, computes isolation distances , and fetches subjective
@@ -30,15 +33,12 @@
 % the Free Software Foundation; either version 3 of the License, or
 % (at your option) any later version.
 
-%% TODO:  - divide power for OB (FindStrongOsc)
 
-
-function [MatInfoNeurons, BasicNeuronInfo] = CalcBasicNeuronInfo(Dir, ploto)
 %% Parameters
 
 % Folders with data
 if ~exist('Dir', 'var')
-    Dir = '/media/nas5/ProjetERC2/Mouse-994/20191013/PagExp/_Concatenated/';
+    Dir = '';
 end
 % Dir = PathForExperimentsERC_Dima('AllSpikes');
 

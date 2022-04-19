@@ -1,4 +1,4 @@
-function [HabEpoch, UMazeEpoch, CondEpoch, TaskEpoch, AfterConditioningEpoch] = ReturnMnemozyneEpochs(SessionEpoch, varargin)
+function [HabEpoch, PreTestEpoch, UMazeEpoch, CondEpoch, TaskEpoch, PostTestEpoch] = ReturnMnemozyneEpochs(SessionEpoch, varargin)
 % 
 % This function returns main types of epochs from ERC-MNEMOZYNE experiments
 % 
@@ -19,6 +19,12 @@ function [HabEpoch, UMazeEpoch, CondEpoch, TaskEpoch, AfterConditioningEpoch] = 
 %   CondEpoch               All conditioning epochs
 %   TaskEpoch               Habituation + pretests + conditioning
 %   AfterConditioningEpoch  All posttests
+% 
+% EXAMPLE
+% 
+%   [HabEpoch, UMazeEpoch, CondEpoch, TaskEpoch, AfterConditioningEpoch] = ReturnMnemozyneEpochs(SessionEpoch)
+%   [~, UMazeEpoch, CondEpoch, TaskEpoch, AfterConditioningEpoch] = ReturnMnemozyneEpochs(SessionEpoch, 'Speed', Vtsd, 'SpeedThresh', 4);
+% 
 % 
 % By Dima Bryzgalov, MOBS team, Paris,
 % 06/07/2020
@@ -52,25 +58,44 @@ end
 
 %% Check for speed requirement
 if ~isempty(speed_data)
-    smoothspeed  = tsd(Range(speed_data),movmedian(Data(CleanVtsd),5));
+    smoothspeed  = tsd(Range(speed_data),movmedian(Data(speed_data),5));
     LocomotionEpoch = thresholdIntervals(smoothspeed,speed_thresh,'Direction','Above');
 end
 
 %% Create epochs
 
 % HabEpoch
-HabEpoch = SessionEpoch.Hab;
+if isfield(SessionEpoch, 'Hab2')
+    try
+        HabEpoch = or(SessionEpoch.Hab1, SessionEpoch.Hab2);
+    catch
+        HabEpoch = or(SessionEpoch.Hab, SessionEpoch.Hab2);
+    end
+else
+    HabEpoch = SessionEpoch.Hab;
+end
 if ~isempty(speed_data)
     HabEpoch = and(LocomotionEpoch, HabEpoch);
 end
 
-% BaselineExplo Epoch
-UMazeEpoch = or(SessionEpoch.Hab,SessionEpoch.TestPre1);
-for itest = 2:ntests
-    UMazeEpoch = or(UMazeEpoch,SessionEpoch.(['TestPre' num2str(itest)]));
-    UMazeEpoch = or(UMazeEpoch,SessionEpoch.(['TestPre' num2str(itest)]));
-    UMazeEpoch = or(UMazeEpoch,SessionEpoch.(['TestPre' num2str(itest)]));
+%PreTestEpoch
+PreTestEpoch = or(SessionEpoch.TestPre1, SessionEpoch.TestPre2);
+if ntests > 2
+    for itest = 3:ntests
+        try
+            PreTestEpoch = or(PreTestEpoch,SessionEpoch.(['TestPre' num2str(itest)]));
+        catch
+            warning(['No TestPre' num2str(itest) ' found']);
+        end
+    end
 end
+if ~isempty(speed_data)
+    PreTestEpoch = and(LocomotionEpoch, PreTestEpoch);
+end
+
+
+% BaselineExplo Epoch
+UMazeEpoch = or(HabEpoch,PreTestEpoch);
 if ~isempty(speed_data)
     UMazeEpoch = and(LocomotionEpoch, UMazeEpoch);
 end
@@ -79,8 +104,11 @@ end
 CondEpoch = or(SessionEpoch.Cond1,SessionEpoch.Cond2);
 if ntests > 2
     for itest = 3:ntests
-        CondEpoch = or(CondEpoch,SessionEpoch.(['Cond' num2str(itest)]));
-        CondEpoch = or(CondEpoch,SessionEpoch.(['Cond' num2str(itest)]));
+        try 
+            CondEpoch = or(CondEpoch,SessionEpoch.(['Cond' num2str(itest)]));
+        catch
+            warning(['No Cond' num2str(itest) ' found']);
+        end
     end
 end
 if ~isempty(speed_data)
@@ -91,15 +119,22 @@ end
 TaskEpoch = or(UMazeEpoch,CondEpoch);
 
 % After Conditioning
-AfterConditioningEpoch = or(SessionEpoch.TestPost1,SessionEpoch.TestPost2);
-if ntests > 2
-    for itest = 3:ntests
-        AfterConditioningEpoch = or(AfterConditioningEpoch,SessionEpoch.(['TestPost' num2str(itest)]));
-        AfterConditioningEpoch = or(AfterConditioningEpoch,SessionEpoch.(['TestPost' num2str(itest)]));
+if isfield(SessionEpoch, 'TestPost1')
+    PostTestEpoch = or(SessionEpoch.TestPost1,SessionEpoch.TestPost2);
+    if ntests > 2
+        for itest = 3:ntests
+            try
+                PostTestEpoch = or(PostTestEpoch,SessionEpoch.(['TestPost' num2str(itest)]));
+            catch
+                warning(['No TestPost' num2str(itest) ' found']);
+            end
+        end
     end
-end
-if ~isempty(speed_data)
-    AfterConditioningEpoch = and(LocomotionEpoch, AfterConditioningEpoch);
+    if ~isempty(speed_data)
+        PostTestEpoch = and(LocomotionEpoch, PostTestEpoch);
+    end
+else
+    PostTestEpoch = [];
 end
 
 end
